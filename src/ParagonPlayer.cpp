@@ -29,15 +29,17 @@ public:
 
     void OnLogin(Player* player) override {
         uint32 accountID = player->GetSession()->GetAccountId();
+        ObjectGuid pGUID = player->GetGUID();
+        uint32 characterID = pGUID.GetRawValue();
         QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             player->AddAura(AURA_PARAGONLEVEL, player);
             player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
-
+            
             //load paragon points
             // AttributesAuraIds = { 7464, 7471, 7477, 7468, 7474 } -- Strength, Agility, Stamina, Intellect, Spirit
-            QueryResult qrtwo = CharacterDatabase.Query("Select * FROM character_paragon_points WHERE accountID = '{}'", accountID);
+            QueryResult qrtwo = CharacterDatabase.Query("Select * FROM character_paragon_points WHERE characterID = '{}'", characterID);
             if (qrtwo) {
                 uint32 pstrength = (*qrtwo)[1].Get<uint32>();
                 uint32 pintellect = (*qrtwo)[2].Get<uint32>();
@@ -48,7 +50,7 @@ public:
                 //check for corrupted points
                 uint32 unspentPoints = player->GetItemCount(100000);
                 if (pstrength + pintellect + pagility + pspirit + pstamina + unspentPoints != paragonLevel * 5) {
-                    CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE accountID = '{}'", accountID);
+                    CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
                     ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your paragon points, please reallocate them!");
                     player->AddItem(100000, paragonLevel * 5 - unspentPoints);
                 }
@@ -71,7 +73,7 @@ public:
         else if(player->GetLevel() == 80) {
             uint32 accountID = player->GetSession()->GetAccountId();
             CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
-            CharacterDatabase.Query("INSERT INTO character_paragon_points (accountID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", accountID);
+            CharacterDatabase.Query("INSERT INTO character_paragon_points (accountID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
             player->AddAura(AURA_PARAGONLEVEL, player);
         }
 
@@ -85,9 +87,22 @@ public:
         {
             //create entry in character_paragon
             uint32 accountID = player->GetSession()->GetAccountId();
+            ObjectGuid pGUID = player->GetGUID();
+            uint32 characterID = pGUID.GetRawValue();
             CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
-            CharacterDatabase.Query("INSERT INTO character_paragon_points (accountID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", accountID);
+            CharacterDatabase.Query("INSERT INTO character_paragon_points (accountID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
             player->AddAura(AURA_PARAGONLEVEL, player);
+        }
+    }
+
+    void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool /*applySickness*/)
+    {
+        uint32 accountID = player->GetSession()->GetAccountId();
+        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+        if (qr) {
+            uint32 paragonLevel = (*qr)[0].Get<uint32>();
+            player->AddAura(AURA_PARAGONLEVEL, player);
+            player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
         }
     }
 
