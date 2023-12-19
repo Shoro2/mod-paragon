@@ -49,10 +49,12 @@ public:
 
                 //check for corrupted points
                 uint32 unspentPoints = player->GetItemCount(100000);
+                
                 if ((pstrength + pintellect + pagility + pspirit + pstamina + unspentPoints) != paragonLevel * 5) {
                     CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
                     ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your paragon points, please reallocate them!");
-                    player->AddItem(100000, paragonLevel * 5 - unspentPoints);
+                    player->DestroyItemCount(100000, player->GetItemCount(100000), true);
+                    player->AddItem(100000, paragonLevel * 5);
                 }
 
                 player->AddAura(AURA_STRENGTH, player);
@@ -86,6 +88,7 @@ public:
             }
         }
         else {
+            //unlock paragon
             uint32 accountID = player->GetSession()->GetAccountId();
             CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
             CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
@@ -108,21 +111,22 @@ public:
                 player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
             }
         }
-        
-
     }
 
     void OnLevelChanged(Player* player, uint8 /*oldlevel*/) override
     {
-        if (player->GetLevel() == 80)
+        if (player->GetLevel() == 80 && !player->HasAura(AURA_PARAGONLEVEL))
         {
             //create entry in character_paragon
             uint32 accountID = player->GetSession()->GetAccountId();
             ObjectGuid pGUID = player->GetGUID();
             uint32 characterID = pGUID.GetRawValue();
-            CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
-            CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-            player->AddAura(AURA_PARAGONLEVEL, player);
+            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            if (!qr) {
+                CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
+                CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
+                player->AddAura(AURA_PARAGONLEVEL, player);
+            }
         }
     }
 
@@ -139,56 +143,61 @@ public:
 
     void OnCreatureKill(Player* killer, Creature* killed) override
     {
-        //increase xp
-        if (killed->IsDungeonBoss() && (killed->GetLevel()-killer->GetLevel()) > 0)
-        {
-            //party xp
-            
-            if (Group* myGroup = killer->GetGroup()) {
-                Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
-                
-                for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                {
-                    if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                        IncreaseParagonXP(player, 3);
+        if (killer->HasAura(AURA_PARAGONLEVEL)) {
+            //increase xp
+            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
+            {
+                //party xp
+
+                if (Group* myGroup = killer->GetGroup()) {
+                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
+
+                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
+                    {
+                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
+                            IncreaseParagonXP(player, 3);
+                        }
                     }
                 }
-            }
-            else {
-                IncreaseParagonXP(killer, 3);
-            }
+                else {
+                    IncreaseParagonXP(killer, 3);
+                }
 
+            }
+            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
+            {
+                IncreaseParagonXP(killer, 1);
+            }
         }
-        else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-        {
-            IncreaseParagonXP(killer, 1);
-        }
+        
     }
 
     void OnCreatureKilledByPet(Player* killer, Creature* killed) override
     {
-        if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
-        {
-            //party xp
+        if (killer->HasAura(AURA_PARAGONLEVEL)) {
+            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
+            {
+                //party xp
 
-            if (Group* myGroup = killer->GetGroup()) {
-                Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
+                if (Group* myGroup = killer->GetGroup()) {
+                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
 
-                for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                {
-                    if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                        IncreaseParagonXP(player, 3);
+                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
+                    {
+                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
+                            IncreaseParagonXP(player, 3);
+                        }
                     }
                 }
-            }
-            else {
-                IncreaseParagonXP(killer, 3);
-            }
+                else {
+                    IncreaseParagonXP(killer, 3);
+                }
 
-        }
-        else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-        {
-            IncreaseParagonXP(killer, 1);
+            }
+            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
+            {
+                IncreaseParagonXP(killer, 1);
+            }
         }
     }
 
