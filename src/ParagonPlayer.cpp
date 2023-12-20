@@ -103,7 +103,6 @@ public:
         {
             uint32 accountID = player->GetSession()->GetAccountId();
             ObjectGuid pGUID = player->GetGUID();
-            uint32 characterID = pGUID.GetRawValue();
             QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
             if (qr) {
                 uint32 paragonLevel = (*qr)[0].Get<uint32>();
@@ -130,7 +129,7 @@ public:
         }
     }
 
-    void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool /*applySickness*/)
+    void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool /*applySickness*/) override
     {
         uint32 accountID = player->GetSession()->GetAccountId();
         QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
