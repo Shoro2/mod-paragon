@@ -48,13 +48,13 @@ public:
                 uint32 pstamina = (*qrtwo)[5].Get<uint32>();
 
                 //check for corrupted points
-                uint32 unspentPoints = player->GetItemCount(100000);
+                uint32 unspentPoints = player->GetItemCount(920920);
                 
                 if ((pstrength + pintellect + pagility + pspirit + pstamina + unspentPoints) != paragonLevel * 5) {
                     CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
                     ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your paragon points, please reallocate them!");
-                    player->DestroyItemCount(100000, player->GetItemCount(100000), true);
-                    player->AddItem(100000, paragonLevel * 5);
+                    player->DestroyItemCount(920920, player->GetItemCount(920920), true);
+                    player->AddItem(920920, paragonLevel * 5);
                 }
 
                 player->AddAura(AURA_STRENGTH, player);
@@ -82,8 +82,8 @@ public:
             else {
                 //account found but new character
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-                uint32 unspentPoints = player->GetItemCount(100000);
-                player->AddItem(100000, paragonLevel * 5 - unspentPoints);
+                uint32 unspentPoints = player->GetItemCount(920920);
+                player->AddItem(920920, paragonLevel * 5 - unspentPoints);
                 ChatHandler(player->GetSession()).SendSysMessage("You can allocate your paragon points!");
             }
         }
@@ -220,7 +220,7 @@ public:
                 std::ostringstream ss;
                 ss << "Congratulations " << player->GetName() << "! You increased your paragon level to " << paragonLevel + 1 << ".";
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
-                player->AddItem(100000, 5);
+                player->AddItem(920920, 5);
             }
             else {
                 //update xp
