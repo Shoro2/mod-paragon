@@ -144,43 +144,67 @@ public:
         }
     }
 
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest_id) override {
+        if (quest_id->IsDailyOrWeekly() && quest_id->GetQuestLevel() == 80) {
+            IncreaseParagonXP(player, 3);
+        }
+    }
+
     void OnCreatureKill(Player* killer, Creature* killed) override
     {
-        if (killer->HasAura(AURA_PARAGONLEVEL)) {
-            //increase xp
-            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
-            {
-                //party xp
-
-                if (Group* myGroup = killer->GetGroup()) {
-                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
-
-                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                    {
-                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                            IncreaseParagonXP(player, 3);
-                        }
-                    }
-                }
-                else {
-                    IncreaseParagonXP(killer, 3);
-                }
-
-            }
-            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-            {
-                IncreaseParagonXP(killer, 1);
-            }
-        }
+        CalculateXPGain(killer, killed);
         
     }
 
     void OnCreatureKilledByPet(Player* killer, Creature* killed) override
     {
+        CalculateXPGain(killer, killed);
+    }
+
+    void CalculateXPGain(Player* killer, Creature* killed) {
         if (killer->HasAura(AURA_PARAGONLEVEL)) {
-            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
-            {
-                //party xp
+            //increase xp
+            //valid for xp
+            uint32 xpAmount = 0;
+            if (killed->GetLevel() - killer->GetLevel() > 0 || !killed->IsSummon()) {
+
+                boolean isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
+
+                // normal elite: 1
+                if (isElite && (!isDungeon || !isRaid) && !isWorldBoss) {
+                    xpAmount = 1;
+                }
+
+                //world boss: 20
+                else if (isElite && (!isDungeon || !isRaid) && isWorldBoss) {
+                    xpAmount = 20;
+                }
+                //dungeon
+                //dungeon elite: 1
+                else if (isElite && isDungeon && !isHeroic && !isDungeonBoss) {
+                    xpAmount = 1;
+                }
+
+                //dungeon boss: 3
+                else if (isElite && isDungeon && !isHeroic && isDungeonBoss) {
+                    xpAmount = 3;
+                }
+
+                //heroic dungeon elite: 2
+                else if (isElite && isDungeon && isHeroic && !isDungeonBoss) {
+                    xpAmount = 2;
+                }
+
+                //heroic dungeon boss: 5
+                else if (isElite && isDungeon && isHeroic && isDungeonBoss) {
+                    xpAmount = 5;
+                }
+
+                //raid
+                //raid boss: 10
+                else if (isElite && isRaid && isWorldBoss) {
+                    xpAmount = 10;
+                }
 
                 if (Group* myGroup = killer->GetGroup()) {
                     Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
@@ -188,19 +212,15 @@ public:
                     for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
                     {
                         if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                            IncreaseParagonXP(player, 3);
+                            IncreaseParagonXP(player, xpAmount);
                         }
                     }
                 }
                 else {
-                    IncreaseParagonXP(killer, 3);
+                    IncreaseParagonXP(killer, xpAmount);
                 }
+            }
 
-            }
-            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-            {
-                IncreaseParagonXP(killer, 1);
-            }
         }
     }
 
