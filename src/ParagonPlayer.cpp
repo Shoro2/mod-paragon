@@ -12,7 +12,7 @@ bool debug = true;
 enum Spellids
 {
     AURA_PARAGONLEVEL = 100000,
-    AURA_STRENGTH = 100001,
+    AURA_STRENGTH = 7507,
     AURA_INTELLECT = 100002,
     AURA_AGILITY = 100003,
     AURA_SPIRIT = 100004,
@@ -92,7 +92,6 @@ public:
             uint32 accountID = player->GetSession()->GetAccountId();
             CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
             CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-            player->AddAura(AURA_PARAGONLEVEL, player);
         }
 
     }
@@ -106,8 +105,11 @@ public:
             QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
             if (qr) {
                 uint32 paragonLevel = (*qr)[0].Get<uint32>();
-                player->AddAura(AURA_PARAGONLEVEL, player);
-                player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+                if (paragonLevel > 0) {
+                    player->AddAura(AURA_PARAGONLEVEL, player);
+                    player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+                }
+                
             }
         }
     }
@@ -124,7 +126,6 @@ public:
             if (!qr) {
                 CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-                player->AddAura(AURA_PARAGONLEVEL, player);
             }
         }
     }
@@ -135,8 +136,11 @@ public:
         QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
-            player->AddAura(AURA_PARAGONLEVEL, player);
-            player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+            if (paragonLevel > 0) {
+                player->AddAura(AURA_PARAGONLEVEL, player);
+                player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+            }
+            
         }
     }
 
