@@ -166,9 +166,8 @@ public:
             //increase xp
             //valid for xp
             uint32 xpAmount = 0;
-            if (killed->GetLevel() - killer->GetLevel() > 0 || !killed->IsSummon()) {
-
-                boolean isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
+            if ((killed->GetLevel() - killer->GetLevel() >= 0) || !killed->IsSummon() || killed->IsPet()) {
+                bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
 
                 // normal elite: 1
                 if (isElite && (!isDungeon || !isRaid) && !isWorldBoss) {
@@ -205,20 +204,23 @@ public:
                 else if (isElite && isRaid && isWorldBoss) {
                     xpAmount = 10;
                 }
+                if (xpAmount > 0) {
+                    if (Group* myGroup = killer->GetGroup()) {
+                        Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
 
-                if (Group* myGroup = killer->GetGroup()) {
-                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
-
-                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                    {
-                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                            IncreaseParagonXP(player, xpAmount);
+                        for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
+                        {
+                            if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
+                                IncreaseParagonXP(player, xpAmount);
+                            }
                         }
                     }
+                    else {
+                        IncreaseParagonXP(killer, xpAmount);
+                    }
                 }
-                else {
-                    IncreaseParagonXP(killer, xpAmount);
-                }
+
+                
             }
 
         }
