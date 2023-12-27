@@ -252,7 +252,7 @@ public:
             else {
                 //update xp
                 QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = xp - '{}' WHERE characterID = '{}'", value, characterID);
-                if (debug) {
+                if (value>0) {
                     std::ostringstream ss;
                     uint32 xpGain = value;
                     ss << "Increasing paragon xp by " << xpGain << ". " << paragonXP - value << " needed to level up.";
