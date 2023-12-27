@@ -90,7 +90,7 @@ public:
             //unlock paragon
             ObjectGuid pGUID = player->GetGUID();
             uint32 characterID = pGUID.GetRawValue();
-            CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 0, 100)", characterID);
+            CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 1, 100)", characterID);
             CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
         }
 
@@ -123,7 +123,7 @@ public:
             uint32 characterID = pGUID.GetRawValue();
             QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE characterID = '{}'", characterID);
             if (!qr) {
-                CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 0, 100)", characterID);
+                CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 1, 100)", characterID);
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
             }
         }
@@ -245,7 +245,7 @@ public:
                 player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
 
                 std::ostringstream ss;
-                ss << "Congratulations " << player->GetName() << "! You increased your paragon level to " << paragonLevel + 1 << ".";
+                ss << "Congratulations " << player->GetName() << "! You increased your Abyssal level to " << paragonLevel + 1 << ".";
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 player->AddItem(920920, 5);
             }
@@ -255,7 +255,7 @@ public:
                 if (value>0) {
                     std::ostringstream ss;
                     uint32 xpGain = value;
-                    ss << "Increasing paragon xp by " << xpGain << ". " << paragonXP - value << " needed to level up.";
+                    ss << "Increasing Abyssal XP by " << xpGain << ". " << paragonXP - value << " needed to level up.";
                     ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 }
             }
