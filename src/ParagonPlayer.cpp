@@ -12,7 +12,7 @@ bool debug = true;
 enum Spellids
 {
     AURA_PARAGONLEVEL = 100000,
-    AURA_STRENGTH = 100001,
+    AURA_STRENGTH = 7507,
     AURA_INTELLECT = 100002,
     AURA_AGILITY = 100003,
     AURA_SPIRIT = 100004,
@@ -28,10 +28,9 @@ public:
     ParagonPlayer() : PlayerScript("ParagonPlayer") { }
 
     void OnLogin(Player* player) override {
-        uint32 accountID = player->GetSession()->GetAccountId();
         ObjectGuid pGUID = player->GetGUID();
         uint32 characterID = pGUID.GetRawValue();
-        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE characterID = '{}'", characterID);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             player->AddAura(AURA_PARAGONLEVEL, player);
@@ -48,13 +47,13 @@ public:
                 uint32 pstamina = (*qrtwo)[5].Get<uint32>();
 
                 //check for corrupted points
-                uint32 unspentPoints = player->GetItemCount(100000);
+                uint32 unspentPoints = player->GetItemCount(920920);
                 
                 if ((pstrength + pintellect + pagility + pspirit + pstamina + unspentPoints) != paragonLevel * 5) {
                     CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
                     ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your paragon points, please reallocate them!");
-                    player->DestroyItemCount(100000, player->GetItemCount(100000), true);
-                    player->AddItem(100000, paragonLevel * 5);
+                    player->DestroyItemCount(920920, player->GetItemCount(920920), true);
+                    player->AddItem(920920, paragonLevel * 5);
                 }
 
                 player->AddAura(AURA_STRENGTH, player);
@@ -82,17 +81,17 @@ public:
             else {
                 //account found but new character
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-                uint32 unspentPoints = player->GetItemCount(100000);
-                player->AddItem(100000, paragonLevel * 5 - unspentPoints);
+                uint32 unspentPoints = player->GetItemCount(920920);
+                player->AddItem(920920, paragonLevel * 5 - unspentPoints);
                 ChatHandler(player->GetSession()).SendSysMessage("You can allocate your paragon points!");
             }
         }
         else {
             //unlock paragon
-            uint32 accountID = player->GetSession()->GetAccountId();
-            CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
+            ObjectGuid pGUID = player->GetGUID();
+            uint32 characterID = pGUID.GetRawValue();
+            CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 0, 100)", characterID);
             CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-            player->AddAura(AURA_PARAGONLEVEL, player);
         }
 
     }
@@ -101,13 +100,16 @@ public:
     {
         if (!player->HasAura(AURA_PARAGONLEVEL))
         {
-            uint32 accountID = player->GetSession()->GetAccountId();
             ObjectGuid pGUID = player->GetGUID();
-            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            uint32 characterID = pGUID.GetRawValue();
+            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE characterID = '{}'", characterID);
             if (qr) {
                 uint32 paragonLevel = (*qr)[0].Get<uint32>();
-                player->AddAura(AURA_PARAGONLEVEL, player);
-                player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+                if (paragonLevel > 0) {
+                    player->AddAura(AURA_PARAGONLEVEL, player);
+                    player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+                }
+                
             }
         }
     }
@@ -117,86 +119,110 @@ public:
         if (player->GetLevel() == 80 && !player->HasAura(AURA_PARAGONLEVEL))
         {
             //create entry in character_paragon
-            uint32 accountID = player->GetSession()->GetAccountId();
             ObjectGuid pGUID = player->GetGUID();
             uint32 characterID = pGUID.GetRawValue();
-            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE characterID = '{}'", characterID);
             if (!qr) {
-                CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 0, 100)", accountID);
+                CharacterDatabase.Query("INSERT INTO character_paragon (characterID, level, xp) VALUES ('{}', 0, 100)", characterID);
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
-                player->AddAura(AURA_PARAGONLEVEL, player);
             }
         }
     }
 
     void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool /*applySickness*/) override
     {
-        uint32 accountID = player->GetSession()->GetAccountId();
-        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+        ObjectGuid pGUID = player->GetGUID();
+        uint32 characterID = pGUID.GetRawValue();
+        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE characterID = '{}'", characterID);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
-            player->AddAura(AURA_PARAGONLEVEL, player);
-            player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+            if (paragonLevel > 0) {
+                player->AddAura(AURA_PARAGONLEVEL, player);
+                player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
+            }
+            
+        }
+    }
+
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest_id) override {
+        if (quest_id->IsDailyOrWeekly() && quest_id->GetQuestLevel() == 80) {
+            IncreaseParagonXP(player, 3);
         }
     }
 
     void OnCreatureKill(Player* killer, Creature* killed) override
     {
-        if (killer->HasAura(AURA_PARAGONLEVEL)) {
-            //increase xp
-            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
-            {
-                //party xp
-
-                if (Group* myGroup = killer->GetGroup()) {
-                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
-
-                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                    {
-                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                            IncreaseParagonXP(player, 3);
-                        }
-                    }
-                }
-                else {
-                    IncreaseParagonXP(killer, 3);
-                }
-
-            }
-            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-            {
-                IncreaseParagonXP(killer, 1);
-            }
-        }
+        CalculateXPGain(killer, killed);
         
     }
 
     void OnCreatureKilledByPet(Player* killer, Creature* killed) override
     {
+        CalculateXPGain(killer, killed);
+    }
+
+    void CalculateXPGain(Player* killer, Creature* killed) {
         if (killer->HasAura(AURA_PARAGONLEVEL)) {
-            if (killed->IsDungeonBoss() && (killed->GetLevel() - killer->GetLevel()) > 0)
-            {
-                //party xp
+            //increase xp
+            //valid for xp
+            uint32 xpAmount = 0;
+            if ((killed->GetLevel() - killer->GetLevel() >= 0) || !killed->IsSummon() || killed->IsPet()) {
+                bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
 
-                if (Group* myGroup = killer->GetGroup()) {
-                    Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
+                // normal elite: 1
+                if (isElite && (!isDungeon || !isRaid) && !isWorldBoss) {
+                    xpAmount = 1;
+                }
 
-                    for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
-                    {
-                        if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
-                            IncreaseParagonXP(player, 3);
+                //world boss: 20
+                else if (isElite && (!isDungeon || !isRaid) && isWorldBoss) {
+                    xpAmount = 20;
+                }
+                //dungeon
+                //dungeon elite: 1
+                else if (isElite && isDungeon && !isHeroic && !isDungeonBoss) {
+                    xpAmount = 1;
+                }
+
+                //dungeon boss: 3
+                else if (isElite && isDungeon && !isHeroic && isDungeonBoss) {
+                    xpAmount = 3;
+                }
+
+                //heroic dungeon elite: 2
+                else if (isElite && isDungeon && isHeroic && !isDungeonBoss) {
+                    xpAmount = 2;
+                }
+
+                //heroic dungeon boss: 5
+                else if (isElite && isDungeon && isHeroic && isDungeonBoss) {
+                    xpAmount = 5;
+                }
+
+                //raid
+                //raid boss: 10
+                else if (isElite && isRaid && isWorldBoss) {
+                    xpAmount = 10;
+                }
+                if (xpAmount > 0) {
+                    if (Group* myGroup = killer->GetGroup()) {
+                        Group::MemberSlotList const& groupMembers = myGroup->GetMemberSlots();
+
+                        for (auto member = groupMembers.begin(); member != groupMembers.end(); ++member)
+                        {
+                            if (Player* player = ObjectAccessor::GetPlayer(killer->GetMap(), member->guid)) {
+                                IncreaseParagonXP(player, xpAmount);
+                            }
                         }
                     }
-                }
-                else {
-                    IncreaseParagonXP(killer, 3);
+                    else {
+                        IncreaseParagonXP(killer, xpAmount);
+                    }
                 }
 
+                
             }
-            else if (killed->isElite() && (killed->GetLevel() - killer->GetLevel()) > 0 && !killed->IsSummon())
-            {
-                IncreaseParagonXP(killer, 1);
-            }
+
         }
     }
 
@@ -204,8 +230,9 @@ public:
 
     void IncreaseParagonXP(Player* player, uint8 value)
     {
-        uint32 accountID = player->GetSession()->GetAccountId();
-        QueryResult qr = CharacterDatabase.Query("Select level, xp FROM character_paragon WHERE accountID = '{}'", accountID);
+        ObjectGuid pGUID = player->GetGUID();
+        uint32 characterID = pGUID.GetRawValue();
+        QueryResult qr = CharacterDatabase.Query("Select level, xp FROM character_paragon WHERE characterID = '{}'", characterID);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             uint32 paragonXP = (*qr)[1].Get<uint32>();
@@ -214,18 +241,18 @@ public:
                 uint32 xpLeft = (paragonXP - value) * (-1);
                 uint32 newXP = 100 * (pow(1.1, paragonLevel + 1)) - xpLeft;
                 //level up
-                QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE accountID = '{}'", newXP, accountID);
+                QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE characterID = '{}'", newXP, characterID);
                 player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
 
                 std::ostringstream ss;
                 ss << "Congratulations " << player->GetName() << "! You increased your paragon level to " << paragonLevel + 1 << ".";
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
-                player->AddItem(100000, 5);
+                player->AddItem(920920, 5);
             }
             else {
                 //update xp
-                QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = xp - '{}' WHERE accountID = '{}'", value, accountID);
-                if (debug) {
+                QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = xp - '{}' WHERE characterID = '{}'", value, characterID);
+                if (value>0) {
                     std::ostringstream ss;
                     uint32 xpGain = value;
                     ss << "Increasing paragon xp by " << xpGain << ". " << paragonXP - value << " needed to level up.";
