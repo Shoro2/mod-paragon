@@ -51,7 +51,7 @@ public:
                 
                 if ((pstrength + pintellect + pagility + pspirit + pstamina + unspentPoints) != paragonLevel * 5) {
                     CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
-                    ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your paragon points, please reallocate them!");
+                    ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your Abyssal points, please reallocate them!");
                     player->DestroyItemCount(920920, player->GetItemCount(920920), true);
                     player->AddItem(920920, paragonLevel * 5);
                 }
@@ -83,7 +83,7 @@ public:
                 CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina) VALUES ('{}', 0, 0, 0, 0 ,0)", characterID);
                 uint32 unspentPoints = player->GetItemCount(920920);
                 player->AddItem(920920, paragonLevel * 5 - unspentPoints);
-                ChatHandler(player->GetSession()).SendSysMessage("You can allocate your paragon points!");
+                ChatHandler(player->GetSession()).SendSysMessage("You can allocate your Abyssal points!");
             }
         }
         else {
