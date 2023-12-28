@@ -166,7 +166,7 @@ public:
             //increase xp
             //valid for xp
             uint32 xpAmount = 0;
-            if ((killed->GetLevel() - killer->GetLevel() >= 0) || !killed->IsSummon() || killed->IsPet()) {
+            if ((killed->GetLevel() - killer->GetLevel() >= 0) && !killed->IsSummon() && !killed->IsPet()) {
                 bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
 
                 // normal elite: 1
