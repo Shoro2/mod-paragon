@@ -236,10 +236,15 @@ public:
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             uint32 paragonXP = (*qr)[1].Get<uint32>();
-            if ((paragonXP - value) <= 0)
+
+
+            // level = 5
+            // paragonXP = 10
+            // value = 20
+            if ((paragonXP - value) <= 0) // -10
             {
-                uint32 xpLeft = (paragonXP - value) * (-1);
-                uint32 newXP = 100 * (pow(1.1, paragonLevel + 1)) - xpLeft;
+                uint32 xpLeft = (paragonXP - value) * (-1); // +10
+                uint32 newXP = (100 * pow(1.1, paragonLevel - 1)) - xpLeft; // (100* 1,1^4)-10
                 //level up
                 QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE characterID = '{}'", newXP, characterID);
                 player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
