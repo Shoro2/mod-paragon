@@ -166,16 +166,18 @@ public:
             //increase xp
             //valid for xp
             uint32 xpAmount = 0;
-            if ((killed->GetLevel() - killer->GetLevel() >= 0) && !killed->IsSummon() && !killed->IsPet()) {
-                bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
-
+            if ((killed->GetLevel() - killer->GetLevel() >= 0) && !killed->IsPet()) {
+                bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsNonRaidDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
+                //std::ostringstream ss;
+                //ss << "isElite: " << isElite << ", isDungeon: " << isDungeon << ", isRaid: " << isRaid <<", isWorldBoss: " << isWorldBoss << ", isHeroic: " << isHeroic << ", isDungeonBoss: " << isDungeonBoss;
+                //ChatHandler(killer->GetSession()).SendSysMessage(ss.str().c_str());
                 // normal elite: 1
-                if (isElite && (!isDungeon || !isRaid) && !isWorldBoss) {
+                if (isElite && (!isDungeon && !isRaid) && !isWorldBoss) {
                     xpAmount = 1;
                 }
 
                 //world boss: 20
-                else if (isElite && (!isDungeon || !isRaid) && isWorldBoss) {
+                else if (isElite && (!isDungeon && !isRaid) && isWorldBoss) {
                     xpAmount = 20;
                 }
                 //dungeon
@@ -228,7 +230,7 @@ public:
 
     // On Quest reward
 
-    void IncreaseParagonXP(Player* player, uint8 value)
+    void IncreaseParagonXP(Player* player, uint32 value)
     {
         ObjectGuid pGUID = player->GetGUID();
         uint32 characterID = pGUID.GetRawValue();
@@ -237,14 +239,20 @@ public:
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             uint32 paragonXP = (*qr)[1].Get<uint32>();
 
-
-            // level = 5
+            int32 diff = (paragonXP - value);
+            // level = 16
             // paragonXP = 10
             // value = 20
-            if ((paragonXP - value) <= 0) // -10
+            if (diff <= 0) // -10
             {
-                uint32 xpLeft = (paragonXP - value) * (-1); // +10
-                uint32 newXP = (100 * pow(1.1, paragonLevel - 1)) - xpLeft; // (100* 1,1^4)-10
+                uint32 xpLeft = value-paragonXP; // +10
+                uint32 newXP = (100 * pow(1.1, paragonLevel - 1)) - xpLeft; // (100 * (pow(1.1, (1 - 1)))) - 10
+                if (newXP < 0) {
+                    std::ostringstream ss;
+                    ss << "There was an error calculating abyssal level, please report this to discord! xp left: " << xpLeft << ", paragon level: " << paragonLevel << ", value: " << value << ", newxp: " << newXP;
+                    ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
+                    newXP = 100;
+                }
                 //level up
                 QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE characterID = '{}'", newXP, characterID);
                 player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
