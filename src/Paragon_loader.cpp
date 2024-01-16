@@ -4,6 +4,7 @@
 
 // From SC
 void AddParagonPlayerScripts();
+void AddParagonNPCScripts();
 
 // Add all
 // cf. the naming convention https://github.com/azerothcore/azerothcore-wotlk/blob/master/doc/changelog/master.md#how-to-upgrade-4
@@ -11,5 +12,6 @@ void AddParagonPlayerScripts();
 void Addmod_paragonScripts()
 {
     AddParagonPlayerScripts();
+    AddParagonNPCScripts();
 }
 
