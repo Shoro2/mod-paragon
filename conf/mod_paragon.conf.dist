@@ -1,17 +1,46 @@
-#
-# Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
-#
-
 [worldserver]
 
 ########################################
-# Paragon configuration
+# Mod Paragon configuration
 ########################################
 #
 #    Paragon.Enable
-#        Description: Enable my module and print "Hello World" message at server start
+#        Description: Enable Mod Paragon
 #        Default:     0 - Disabled
 #                     1 - Enabled
 #
 
 Paragon.Enable = 1
+
+########################################
+# Spell Ids
+########################################
+
+Paragon.IdLevel = 100000
+Paragon.IdStr	= 7507
+Paragon.IdInt	= 100002
+Paragon.IdAgi	= 100003
+Paragon.IdSpi	= 100004
+Paragon.IdSta	= 100005
+
+########################################
+# Points per Level
+########################################
+
+Paragon.PPL = 5
+
+########################################
+# XP
+########################################
+
+Paragon.XPElite				= 1
+Paragon.XPWorldBoss			= 20
+Paragon.XPDungeonElite		= 3
+Paragon.XPDungeonBoss		= 2
+Paragon.XPHCDungeonElite	= 2
+Paragon.XPHCDungeonBoss		= 5
+Paragon.XPRaidBoss			= 10
+
+# Reduces XP in party/raid. XP = XP/PlayerCount
+
+Paragon.XPPartyReduce = 0
