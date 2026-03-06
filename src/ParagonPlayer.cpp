@@ -2,7 +2,6 @@
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
-#include "ElunaIncludes.h"
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Config.h"
@@ -136,14 +135,14 @@ void ApplyParagonStatEffects(Player* player)
     uint8 paragonLevel = player->GetAuraCount(AURA_PARAGONLEVEL);
     if ((pstrength + pintellect + pagility + pspirit + pstamina + phaste + parmpen + pspellpower + pcrit + pmspeed + pmreg + phit + pblock + pexpertise + pparry + pdodge + unspentPoints) != paragonLevel * 5) {
         CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0, phaste = 0, parmpen = 0, pspellpower = 0,  pcrit = 0, pmspeed = 0, pmreg = 0, phit = 0, pblock = 0, pexpertise = 0, pparry = 0, pdodge = 0 WHERE characterID = '{}'", characterID);
-        ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your Abyssal points, please reallocate them!");
+        ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your Paragon points, please reallocate them!");
         player->DestroyItemCount(920920, player->GetItemCount(920920), true);
         player->AddItem(920920, paragonLevel * 5);
     }
 
     RefreshParagonAura(player, pstrength, pintellect, pagility, pspirit, pstamina, phaste, parmpen, pspellpower, pcrit, pmspeed, pmreg, phit, pblock, pexpertise, pdodge, pparry);
 
-    ChatHandler(player->GetSession()).SendSysMessage("Abyssal stats reapplied.");
+    ChatHandler(player->GetSession()).SendSysMessage("Paragon stats reapplied.");
 }
 
 // Add player scripts
@@ -152,7 +151,7 @@ class ParagonPlayer : public PlayerScript
 public:
     ParagonPlayer() : PlayerScript("ParagonPlayer") { }
 
-    void OnLogin(Player* player) override {
+    void OnPlayerLogin(Player* player) override {
         uint32 accountID = player->GetSession()->GetAccountId();
         ObjectGuid pGUID = player->GetGUID();
         uint32 characterID = pGUID.GetRawValue();
@@ -179,7 +178,7 @@ public:
 
     }
 
-    void OnMapChanged(Player* player) override
+    void OnPlayerMapChanged(Player* player) override
     {
         if (!player->HasAura(AURA_PARAGONLEVEL))
         {
@@ -201,7 +200,7 @@ public:
         
     }
 
-    void OnLevelChanged(Player* player, uint8 /*oldlevel*/) override
+    void OnPlayerLevelChanged(Player* player, uint8 /*oldlevel*/) override
     {
         if (player->GetLevel() == 80 && !player->HasAura(AURA_PARAGONLEVEL))
         {
@@ -246,14 +245,14 @@ public:
         }
     }
 
-    void OnCreatureKill(Player* killer, Creature* killed) override
+    void OnPlayerCreatureKill(Player* killer, Creature* killed) override
     {
         CalculateXPGain(killer, killed);
        
     }
 
 
-    void OnCreatureKilledByPet(Player* killer, Creature* killed) override
+    void OnPlayerCreatureKilledByPet(Player* killer, Creature* killed) override
     {
         CalculateXPGain(killer, killed);
     }
@@ -349,7 +348,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
             uint32 newXP = (100 * pow(1.1, paragonLevel - 1)) - xpLeft; // (100 * (pow(1.1, (1 - 1)))) - 10
             if (newXP < 0) {
                 std::ostringstream ss;
-                ss << "There was an error calculating abyssal level, please report this to discord! xp left: " << xpLeft << ", paragon level: " << paragonLevel << ", value: " << value << ", newxp: " << newXP;
+                ss << "There was an error calculating paragon level, please report this to discord! xp left: " << xpLeft << ", paragon level: " << paragonLevel << ", value: " << value << ", newxp: " << newXP;
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 newXP = 100;
             }
@@ -357,7 +356,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
             player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
 
             std::ostringstream ss;
-            ss << "Congratulations " << player->GetName() << "! You increased your Abyssal level to " << paragonLevel + 1 << ".";
+            ss << "Congratulations " << player->GetName() << "! You increased your Paragon level to " << paragonLevel + 1 << ".";
             ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
             player->AddItem(920920, 5);
         }
@@ -369,7 +368,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
                     std::ostringstream ss;
                     uint32 xpGain = value;
 
-                    ss << "Increasing Abyssal XP by " << xpGain << ". " << paragonXP - value << " needed to level up.";
+                    ss << "Increasing Paragon XP by " << xpGain << ". " << paragonXP - value << " needed to level up.";
                     ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 }
             }
