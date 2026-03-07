@@ -74,6 +74,9 @@ function NavData.Load()
 		repeat
 			table.insert(NavData.Cache, {Query:GetUInt32(KEYS.category.id-1), Query:GetString(KEYS.category.name-1), Query:GetString(KEYS.category.icon-1), Query:GetUInt32(KEYS.category.requiredRank-1), Query:GetUInt32(KEYS.category.flags-1), Query:GetUInt32(KEYS.category.enabled-1)})
 		until not Query:NextRow()
+		print("[Paragon] Loaded "..#NavData.Cache.." categories")
+	else
+		print("[Paragon] WARNING: Failed to load store.store_categories - is the store database set up?")
 	end
 end
 
@@ -82,6 +85,7 @@ function CurrencyData.Load()
 
 	local Query = WorldDBQuery("SELECT * FROM store.store_currencies")
 	if(Query) then
+		local count = 0
 		repeat
 			CurrencyData.Cache[Query:GetUInt32(0)] = {
 				Query:GetUInt32(1), -- type
@@ -90,7 +94,11 @@ function CurrencyData.Load()
 				Query:GetUInt32(4), -- data
 				Query:GetString(5), -- tooltip
 			}
+			count = count + 1
 		until not Query:NextRow()
+		print("[Paragon] Loaded "..count.." currencies")
+	else
+		print("[Paragon] WARNING: Failed to load store.store_currencies - is the store database set up?")
 	end
 end
 
@@ -99,8 +107,10 @@ function ServiceData.Load()
 
 	local Query = WorldDBQuery("SELECT * FROM store.store_services;");
 	if(Query) then
+		local count = 0
 		repeat
 			if(Query:GetUInt32(KEYS.service.enabled) == 1) then
+				count = count + 1
 				ServiceData.Cache[Query:GetUInt32(KEYS.service.id)] = {
 					Query:GetUInt32(KEYS.service.serviceType),
 					Query:GetString(KEYS.service.name),
@@ -134,6 +144,9 @@ function ServiceData.Load()
 				}
 			end
 		until not Query:NextRow()
+		print("[Paragon] Loaded "..count.." services")
+	else
+		print("[Paragon] WARNING: Failed to load store.store_services - is the store database set up?")
 	end
 end
 
@@ -145,6 +158,9 @@ function LinkData.Load()
 		repeat
 			table.insert(LinkData.Cache, {Query:GetUInt32(0), Query:GetUInt32(1)})
 		until not Query:NextRow()
+		print("[Paragon] Loaded "..#LinkData.Cache.." category-service links")
+	else
+		print("[Paragon] WARNING: Failed to load store.store_category_service_link - is the store database set up?")
 	end
 end
 

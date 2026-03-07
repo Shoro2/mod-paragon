@@ -22,6 +22,7 @@ local CURRENCY_TYPES = {
 
 -- Aura ID to DB column name mapping
 local AURA_COLUMN_MAP = {
+	[7507]   = "pstrength",
 	[100001] = "pstrength",
 	[100002] = "pintellect",
 	[100003] = "pagility",
@@ -34,8 +35,21 @@ local KEYS = GetDataStructKeys();
 local ParagonHandler = AIO.AddHandlers("PARAGON_SERVER", {})
 
 function ParagonHandler.FrameData(player)
+	local services = GetServiceData()
+	local links = GetLinkData()
+	local nav = GetNavData()
+	local currencies = GetCurrencyData()
 	local paragonData = GetParagonData(player:GetGUIDLow())
-	AIO.Handle(player, "PARAGON_CLIENT", "FrameData", GetServiceData(), GetLinkData(), GetNavData(), GetCurrencyData(), player:GetGMRank(), paragonData)
+
+	-- Debug: log data counts
+	local sCount, lCount, nCount, cCount = 0, 0, 0, 0
+	for _ in pairs(services) do sCount = sCount + 1 end
+	for _ in pairs(links) do lCount = lCount + 1 end
+	for _ in pairs(nav) do nCount = nCount + 1 end
+	for _ in pairs(currencies) do cCount = cCount + 1 end
+	print("[Paragon] FrameData for "..player:GetName()..": "..sCount.." services, "..lCount.." links, "..nCount.." categories, "..cCount.." currencies")
+
+	AIO.Handle(player, "PARAGON_CLIENT", "FrameData", services, links, nav, currencies, player:GetGMRank(), paragonData)
 end
 
 function ParagonHandler.UpdateCurrencies(player)

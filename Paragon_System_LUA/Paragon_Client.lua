@@ -306,6 +306,7 @@ end
 
 -- Aura ID to paragon data index mapping
 local AURA_TO_PARAGON_INDEX = {
+	[7507]   = 1, -- Strength (alternative aura ID)
 	[100001] = 1, -- Strength
 	[100002] = 2, -- Intellect
 	[100003] = 3, -- Agility
