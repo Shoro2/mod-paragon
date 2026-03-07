@@ -168,14 +168,25 @@ end
 
 function GetParagonData(characterID)
 	ParagonData.Cache = {};
-	local Query = CharDBQuery("SELECT `pstrength`, `pintellect`, `pagility`, `pspirit`, `pstamina` FROM `character_paragon_points` WHERE `characterID` = "..characterID)
+	local Query = CharDBQuery("SELECT `pstrength`, `pintellect`, `pagility`, `pspirit`, `pstamina`, `phaste`, `parmpen`, `pspellpower`, `pcrit`, `pmspeed`, `pmreg`, `phit`, `pblock`, `pexpertise`, `pparry`, `pdodge` FROM `character_paragon_points` WHERE `characterID` = "..characterID)
 	if (Query) then
 		ParagonData.Cache = {
-			Query:GetUInt32(0), -- strength
-			Query:GetUInt32(1), -- intellect
-			Query:GetUInt32(2), -- agility
-			Query:GetUInt32(3), -- spirit
-			Query:GetUInt32(4), -- stamina
+			Query:GetUInt32(0),  -- strength
+			Query:GetUInt32(1),  -- intellect
+			Query:GetUInt32(2),  -- agility
+			Query:GetUInt32(3),  -- spirit
+			Query:GetUInt32(4),  -- stamina
+			Query:GetUInt32(5),  -- haste
+			Query:GetUInt32(6),  -- armor penetration
+			Query:GetUInt32(7),  -- spell power
+			Query:GetUInt32(8),  -- crit
+			Query:GetUInt32(9),  -- mount speed
+			Query:GetUInt32(10), -- mana regen (mp5)
+			Query:GetUInt32(11), -- hit
+			Query:GetUInt32(12), -- block
+			Query:GetUInt32(13), -- expertise
+			Query:GetUInt32(14), -- parry
+			Query:GetUInt32(15), -- dodge
 		}
 	end
 	return ParagonData.Cache;

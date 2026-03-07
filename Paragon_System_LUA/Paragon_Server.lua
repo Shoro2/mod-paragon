@@ -23,10 +23,22 @@ local CURRENCY_TYPES = {
 -- Aura ID to DB column name mapping
 local AURA_COLUMN_MAP = {
 	[100001] = "pstrength",
+	[7507]   = "pstrength",
 	[100002] = "pintellect",
 	[100003] = "pagility",
 	[100004] = "pspirit",
 	[100005] = "pstamina",
+	[100016] = "phaste",
+	[100017] = "parmpen",
+	[100018] = "pspellpower",
+	[100019] = "pcrit",
+	[100020] = "pmspeed",
+	[100021] = "pmreg",
+	[100022] = "phit",
+	[100023] = "pblock",
+	[100024] = "pexpertise",
+	[100025] = "pparry",
+	[100026] = "pdodge",
 }
 
 local KEYS = GetDataStructKeys();

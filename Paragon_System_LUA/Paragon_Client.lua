@@ -298,11 +298,23 @@ end
 
 -- Aura ID to paragon data index mapping
 local AURA_TO_PARAGON_INDEX = {
-	[100001] = 1, -- Strength
-	[100002] = 2, -- Intellect
-	[100003] = 3, -- Agility
-	[100004] = 4, -- Spirit
-	[100005] = 5, -- Stamina
+	[100001] = 1,  -- Strength
+	[7507]   = 1,  -- Strength (C++ aura)
+	[100002] = 2,  -- Intellect
+	[100003] = 3,  -- Agility
+	[100004] = 4,  -- Spirit
+	[100005] = 5,  -- Stamina
+	[100016] = 6,  -- Haste
+	[100017] = 7,  -- Armor Penetration
+	[100018] = 8,  -- Spell Power
+	[100019] = 9,  -- Crit
+	[100020] = 10, -- Mount Speed
+	[100021] = 11, -- Mana Regen (MP5)
+	[100022] = 12, -- Hit
+	[100023] = 13, -- Block
+	[100024] = 14, -- Expertise
+	[100025] = 15, -- Parry
+	[100026] = 16, -- Dodge
 }
 
 -- Service boxes (stat allocation cards)
