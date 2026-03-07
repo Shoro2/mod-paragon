@@ -118,7 +118,7 @@ function ParagonHandler.AllocatePoint(player, serviceId)
 
 	-- Update DB
 	local characterId = player:GetGUIDLow()
-	CharDBExecute("UPDATE `character_paragon_points` SET `"..column.."` = `"..column.."` + 1 WHERE `characterID` = "..characterId..";")
+	CharDBQuery("UPDATE `character_paragon_points` SET `"..column.."` = `"..column.."` + 1 WHERE `characterID` = "..characterId..";")
 
 	-- Refresh UI
 	ParagonHandler.UpdateCurrencies(player)
@@ -173,7 +173,7 @@ function ParagonHandler.DeallocatePoint(player, serviceId)
 
 	-- Update DB
 	local characterId = player:GetGUIDLow()
-	CharDBExecute("UPDATE `character_paragon_points` SET `"..column.."` = `"..column.."` - 1 WHERE `characterID` = "..characterId..";")
+	CharDBQuery("UPDATE `character_paragon_points` SET `"..column.."` = `"..column.."` - 1 WHERE `characterID` = "..characterId..";")
 
 	-- Refresh UI
 	ParagonHandler.UpdateCurrencies(player)
