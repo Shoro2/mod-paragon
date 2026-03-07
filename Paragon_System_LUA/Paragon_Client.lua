@@ -77,6 +77,13 @@ local function CoordsToTexCoords(size, xTop, yTop, xBottom, yBottom)
 	return Left, Right, Top, Bottom
 end
 
+-- Safely set tex coords on a texture getter (GetNormalTexture etc may return nil)
+local function SafeSetTexCoord(textureObj, ...)
+	if textureObj then
+		textureObj:SetTexCoord(...)
+	end
+end
+
 ------------
 
 local ParagonHandler = AIO.AddHandlers("PARAGON_CLIENT", {})
@@ -210,8 +217,8 @@ function PARAGON_UI.NavButtons_Create(parent)
 
 		navButton:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		navButton:SetHighlightTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-		navButton:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, 768, 897, 1023, 960))
-		navButton:GetHighlightTexture():SetTexCoord(CoordsToTexCoords(1024, 768, 960, 1023, 1023))
+		SafeSetTexCoord(navButton:GetNormalTexture(), CoordsToTexCoords(1024, 768, 897, 1023, 960))
+		SafeSetTexCoord(navButton:GetHighlightTexture(), CoordsToTexCoords(1024, 768, 960, 1023, 1023))
 
 		navButton.Name = navButton:CreateFontString()
 		navButton.Name:SetFont("Fonts\\FRIZQT__.TTF", 14)
@@ -260,6 +267,7 @@ function PARAGON_UI.NavButtons_UpdateSelect()
 end
 
 function PARAGON_UI.NavButtons_OnData()
+	if not PARAGON_UI["NAV_BUTTONS"] or not PARAGON_UI["NAV_BUTTONS"][1] then return end
 	local index = 1
 
 	for _, v in pairs(PARAGON_UI["Data"].nav) do
@@ -333,8 +341,8 @@ function PARAGON_UI.ServiceBoxes_Create(parent)
 		service:SetPoint("CENTER", parent, "CENTER", BoxCoordX, BoxCoordY)
 		service:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		service:SetHighlightTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-		service:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, 0, 658, 215, 1023))
-		service:GetHighlightTexture():SetTexCoord(CoordsToTexCoords(1024, 215, 658, 430, 1023))
+		SafeSetTexCoord(service:GetNormalTexture(), CoordsToTexCoords(1024, 0, 658, 215, 1023))
+		SafeSetTexCoord(service:GetHighlightTexture(), CoordsToTexCoords(1024, 215, 658, 430, 1023))
 
 		-- Icon
 		service.Icon = service:CreateTexture(nil, "BACKGROUND")
@@ -371,9 +379,9 @@ function PARAGON_UI.ServiceBoxes_Create(parent)
 		service.buyButton:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		service.buyButton:SetHighlightTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		service.buyButton:SetPushedTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-		service.buyButton:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 849, 837, 873))
-		service.buyButton:GetHighlightTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 849, 837, 873))
-		service.buyButton:GetPushedTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 873, 837, 897))
+		SafeSetTexCoord(service.buyButton:GetNormalTexture(), CoordsToTexCoords(1024, 709, 849, 837, 873))
+		SafeSetTexCoord(service.buyButton:GetHighlightTexture(), CoordsToTexCoords(1024, 709, 849, 837, 873))
+		SafeSetTexCoord(service.buyButton:GetPushedTexture(), CoordsToTexCoords(1024, 709, 873, 837, 897))
 
 		service.buyButton.ButtonText = service.buyButton:CreateFontString()
 		service.buyButton.ButtonText:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
@@ -395,9 +403,9 @@ function PARAGON_UI.ServiceBoxes_Create(parent)
 		service.sellButton:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		service.sellButton:SetHighlightTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 		service.sellButton:SetPushedTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-		service.sellButton:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 849, 837, 873))
-		service.sellButton:GetHighlightTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 849, 837, 873))
-		service.sellButton:GetPushedTexture():SetTexCoord(CoordsToTexCoords(1024, 709, 873, 837, 897))
+		SafeSetTexCoord(service.sellButton:GetNormalTexture(), CoordsToTexCoords(1024, 709, 849, 837, 873))
+		SafeSetTexCoord(service.sellButton:GetHighlightTexture(), CoordsToTexCoords(1024, 709, 849, 837, 873))
+		SafeSetTexCoord(service.sellButton:GetPushedTexture(), CoordsToTexCoords(1024, 709, 873, 837, 897))
 
 		service.sellButton.ButtonText = service.sellButton:CreateFontString()
 		service.sellButton.ButtonText:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
@@ -471,6 +479,7 @@ end
 
 function PARAGON_UI.ServiceBoxes_Update()
 	if not PARAGON_UI["Vars"].dataLoaded then return end
+	if not PARAGON_UI["SERVICE_BUTTONS"] or not PARAGON_UI["SERVICE_BUTTONS"][1] then return end
 	local currentPage = PARAGON_UI["Vars"].currentPage
 
 	local categoryServices = GetCategoryServiceIds()
@@ -547,9 +556,9 @@ function PARAGON_UI.PageButtons_Create(parent)
 	backButton:SetDisabledTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 	backButton:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 	backButton:SetPushedTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-	backButton:GetDisabledTexture():SetTexCoord(CoordsToTexCoords(1024, backTopX, backTopY, backBotX, backBotY))
-	backButton:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, backTopX+31, backTopY, backBotX+31, backBotY))
-	backButton:GetPushedTexture():SetTexCoord(CoordsToTexCoords(1024, backTopX+62, backTopY, backBotX+62, backBotY))
+	SafeSetTexCoord(backButton:GetDisabledTexture(), CoordsToTexCoords(1024, backTopX, backTopY, backBotX, backBotY))
+	SafeSetTexCoord(backButton:GetNormalTexture(), CoordsToTexCoords(1024, backTopX+31, backTopY, backBotX+31, backBotY))
+	SafeSetTexCoord(backButton:GetPushedTexture(), CoordsToTexCoords(1024, backTopX+62, backTopY, backBotX+62, backBotY))
 
 	backButton:SetScript(
 		"OnClick",
@@ -571,9 +580,9 @@ function PARAGON_UI.PageButtons_Create(parent)
 	forwardButton:SetDisabledTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 	forwardButton:SetNormalTexture("Interface/Store_UI/Frames/StoreFrame_Main")
 	forwardButton:SetPushedTexture("Interface/Store_UI/Frames/StoreFrame_Main")
-	forwardButton:GetDisabledTexture():SetTexCoord(CoordsToTexCoords(1024, forwTopX, forwTopY, forwBotX, forwBotY))
-	forwardButton:GetNormalTexture():SetTexCoord(CoordsToTexCoords(1024, forwTopX+31, forwTopY, forwBotX+31, forwBotY))
-	forwardButton:GetPushedTexture():SetTexCoord(CoordsToTexCoords(1024, forwTopX+62, forwTopY, forwBotX+62, forwBotY))
+	SafeSetTexCoord(forwardButton:GetDisabledTexture(), CoordsToTexCoords(1024, forwTopX, forwTopY, forwBotX, forwBotY))
+	SafeSetTexCoord(forwardButton:GetNormalTexture(), CoordsToTexCoords(1024, forwTopX+31, forwTopY, forwBotX+31, forwBotY))
+	SafeSetTexCoord(forwardButton:GetPushedTexture(), CoordsToTexCoords(1024, forwTopX+62, forwTopY, forwBotX+62, forwBotY))
 
 	forwardButton:SetScript(
 		"OnClick",
@@ -600,7 +609,7 @@ function PARAGON_UI.PageButtons_OnClick(val)
 end
 
 function PARAGON_UI.PageButtons_Update()
-	if not PARAGON_UI["PAGING_ELEMENTS"] then return end
+	if not PARAGON_UI["PAGING_ELEMENTS"] or not PARAGON_UI["PAGING_ELEMENTS"][1] then return end
 	local currentPage = PARAGON_UI["Vars"].currentPage
 	local maxPages = PARAGON_UI["Vars"].maxPages
 
@@ -675,6 +684,7 @@ function PARAGON_UI.CurrencyBadges_Create(parent)
 end
 
 function PARAGON_UI.CurrencyBadges_OnData()
+	if not PARAGON_UI["CURRENCY_BUTTONS"] or not PARAGON_UI["CURRENCY_BUTTONS"][1] then return end
 	local index = 1
 	local shownCount = 0
 	for k, v in pairs(PARAGON_UI["Data"].currencies) do
@@ -712,6 +722,7 @@ end
 
 function PARAGON_UI.CurrencyBadges_Update()
 	if not PARAGON_UI["Vars"].dataLoaded then return end
+	if not PARAGON_UI["CURRENCY_BUTTONS"] then return end
 	for _, button in pairs(PARAGON_UI["CURRENCY_BUTTONS"]) do
 		if(button.shown) then
 			button.currencyValue = PARAGON_UI["Vars"]["playerCurrencies"][button.currencyId] or 0
