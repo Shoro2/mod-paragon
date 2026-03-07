@@ -142,14 +142,16 @@ function PARAGON_UI.MainFrame_Create()
 	AIO.Handle("PARAGON_SERVER", "FrameData")
 	AIO.Handle("PARAGON_SERVER", "UpdateCurrencies")
 
-	MainMenuMicroButton:SetScript(
-		"OnClick",
-		function()
-			if GameMenuFrame:IsShown() then
-				MainFrame_Toggle()
+	if MainMenuMicroButton then
+		MainMenuMicroButton:SetScript(
+			"OnClick",
+			function()
+				if GameMenuFrame and GameMenuFrame:IsShown() then
+					MainFrame_Toggle()
+				end
 			end
-		end
-	)
+		)
+	end
 
 	mainFrame.CloseButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
 	mainFrame.CloseButton:SetSize(30, 30)
@@ -707,11 +709,17 @@ function MainFrame_Toggle()
 end
 
 -- Add Paragon button to game menu
+local gameMenuModified = false
 local function ModifyGameMenuFrame()
+	if gameMenuModified then return end
 	local frame = _G["GameMenuFrame"]
-	frame:SetSize(195, 270)
+	if not frame then return end
 
 	local videoButton = _G["GameMenuButtonOptions"]
+	if not videoButton then return end
+
+	gameMenuModified = true
+	frame:SetSize(195, 270)
 	videoButton:SetPoint("CENTER", frame, "TOP", 0, -70)
 
 	local paragonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate");
@@ -731,4 +739,14 @@ end
 
 -- Initialize
 PARAGON_UI.MainFrame_Create()
+
+-- Try immediately; if GameMenuFrame doesn't exist yet, retry on PLAYER_ENTERING_WORLD
 ModifyGameMenuFrame()
+if not gameMenuModified then
+	local initFrame = CreateFrame("Frame")
+	initFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	initFrame:SetScript("OnEvent", function(self)
+		ModifyGameMenuFrame()
+		self:UnregisterAllEvents()
+	end)
+end
