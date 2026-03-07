@@ -60,7 +60,7 @@ function ParagonHandler.UpdateCurrencies(player)
 			val = "9999+"
 		end
 
-		table.insert(tmp, val)
+		tmp[currencyId] = val
 	end
 
 	local paragonData = GetParagonData(player:GetGUIDLow())
