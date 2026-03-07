@@ -68,6 +68,7 @@ The Lua code implements a paragon stat allocation UI using the [AIO (AddOn IO) f
 - **Client script** (`Paragon_Client.lua`) is sent to the WoW client as an addon via AIO on login
 - Communication uses `AIO.Handle(player, "HANDLER_NAME", "Method", args...)` (server->client) and `AIO.Handle("HANDLER_NAME", "Method", args...)` (client->server)
 - Handler registration: `AIO.AddHandlers("HANDLER_NAME", {})` creates a handler table on both sides
+- **IMPORTANT**: `AddHandlers` wraps all handler functions with `function(player, key, ...) handlertable[key](player, ...) end`. This means handler functions on BOTH server AND client always receive `player` as their first argument. On the client side, `player` is a string identifier, not a WoW player object — it must still be declared as a parameter to keep argument positions correct.
 - Handler names: `PARAGON_SERVER` (server-side), `PARAGON_CLIENT` (client-side)
 
 ### Paragon_DataStruct.lua — Data Layer
