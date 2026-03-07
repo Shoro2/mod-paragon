@@ -81,7 +81,7 @@ end
 
 local ParagonHandler = AIO.AddHandlers("PARAGON_CLIENT", {})
 
-function ParagonHandler.FrameData(services, links, nav, currencies, rank, paragonData)
+function ParagonHandler.FrameData(player, services, links, nav, currencies, rank, paragonData)
 	ParagonSafeCall(function()
 		PARAGON_UI["Data"].services = services or {}
 		PARAGON_UI["Data"].links = links or {}
@@ -96,7 +96,7 @@ function ParagonHandler.FrameData(services, links, nav, currencies, rank, parago
 	end)
 end
 
-function ParagonHandler.UpdateCurrencies(currencies, paragonData)
+function ParagonHandler.UpdateCurrencies(player, currencies, paragonData)
 	ParagonSafeCall(function()
 		if currencies then
 			for k, v in pairs(currencies) do
