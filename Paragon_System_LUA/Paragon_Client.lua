@@ -75,6 +75,7 @@ function ParagonHandler.FrameData(services, links, nav, currencies, rank, parago
 	PARAGON_UI["Data"].currencies = currencies or {}
 	PARAGON_UI["Vars"].accountRank = rank or 0
 	PARAGON_UI["Vars"].paragonData = paragonData or {}
+	PARAGON_UI["Vars"].dataLoaded = true
 	PARAGON_UI.NavButtons_OnData()
 	PARAGON_UI.CurrencyBadges_OnData()
 	PARAGON_UI.ServiceBoxes_OnData()
@@ -102,6 +103,7 @@ PARAGON_UI = {
 		currentPage = 1,
 		maxPages = 1,
 		accountRank = 0,
+		dataLoaded = false,
 		paragonData = {},
 		["playerCurrencies"] = {}
 	},
@@ -219,8 +221,6 @@ function PARAGON_UI.NavButtons_Create(parent)
 		PARAGON_UI["NAV_BUTTONS"][i] = navButton
 		navButton:Hide()
 	end
-
-	PARAGON_UI.NavButtons_OnData()
 end
 
 function PARAGON_UI.NavButtons_OnClick(self)
@@ -427,8 +427,6 @@ function PARAGON_UI.ServiceBoxes_Create(parent)
 		service:Hide()
 		PARAGON_UI["SERVICE_BUTTONS"][i] = service
 	end
-
-	PARAGON_UI.ServiceBoxes_OnData()
 end
 
 local function GetCategoryServiceIds()
@@ -459,6 +457,7 @@ local function GetServiceData(serviceIds)
 end
 
 function PARAGON_UI.ServiceBoxes_Update()
+	if not PARAGON_UI["Vars"].dataLoaded then return end
 	local currentPage = PARAGON_UI["Vars"].currentPage
 
 	local categoryServices = GetCategoryServiceIds()
@@ -569,7 +568,6 @@ function PARAGON_UI.PageButtons_Create(parent)
 	)
 
 	PARAGON_UI["PAGING_ELEMENTS"] = {backButton, forwardButton, pageText}
-	PARAGON_UI.PageButtons_Update()
 end
 
 function PARAGON_UI.PageButtons_OnClick(val)
@@ -697,11 +695,14 @@ function PARAGON_UI.CurrencyBadges_OnData()
 end
 
 function PARAGON_UI.CurrencyBadges_Update()
+	if not PARAGON_UI["Vars"].dataLoaded then return end
 	for _, button in pairs(PARAGON_UI["CURRENCY_BUTTONS"]) do
 		if(button.shown) then
-			button.currencyValue = PARAGON_UI["Vars"]["playerCurrencies"][button.currencyId]
+			button.currencyValue = PARAGON_UI["Vars"]["playerCurrencies"][button.currencyId] or 0
 			button.Amount:SetText(button.currencyValue)
-			button.Icon:SetTexture("Interface/Store_UI/Currencies/"..button.currencyIcon)
+			if button.currencyIcon then
+				button.Icon:SetTexture("Interface/Store_UI/Currencies/"..button.currencyIcon)
+			end
 		end
 	end
 end
