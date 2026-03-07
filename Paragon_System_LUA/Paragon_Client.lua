@@ -52,6 +52,19 @@ local KEYS = {
 
 local scaleMulti = 0.85
 
+-- Error handler for meaningful stack traces (LuaSrcDiet mangles line numbers)
+local function ParagonSafeCall(func, ...)
+	local ok, err = pcall(func, ...)
+	if not ok then
+		local trace = debugstack(2, 6, 0) or ""
+		local msg = "Paragon UI Error: " .. tostring(err) .. "\n" .. trace
+		if DEFAULT_CHAT_FRAME then
+			DEFAULT_CHAT_FRAME:AddMessage("|cffff0000" .. msg .. "|r")
+		end
+	end
+	return ok
+end
+
 -- Helpers --
 
 local function CoordsToTexCoords(size, xTop, yTop, xBottom, yBottom)
@@ -69,29 +82,33 @@ end
 local ParagonHandler = AIO.AddHandlers("PARAGON_CLIENT", {})
 
 function ParagonHandler.FrameData(services, links, nav, currencies, rank, paragonData)
-	PARAGON_UI["Data"].services = services or {}
-	PARAGON_UI["Data"].links = links or {}
-	PARAGON_UI["Data"].nav = nav or {}
-	PARAGON_UI["Data"].currencies = currencies or {}
-	PARAGON_UI["Vars"].accountRank = rank or 0
-	PARAGON_UI["Vars"].paragonData = paragonData or {}
-	PARAGON_UI["Vars"].dataLoaded = true
-	PARAGON_UI.NavButtons_OnData()
-	PARAGON_UI.CurrencyBadges_OnData()
-	PARAGON_UI.ServiceBoxes_OnData()
+	ParagonSafeCall(function()
+		PARAGON_UI["Data"].services = services or {}
+		PARAGON_UI["Data"].links = links or {}
+		PARAGON_UI["Data"].nav = nav or {}
+		PARAGON_UI["Data"].currencies = currencies or {}
+		PARAGON_UI["Vars"].accountRank = rank or 0
+		PARAGON_UI["Vars"].paragonData = paragonData or {}
+		PARAGON_UI["Vars"].dataLoaded = true
+		PARAGON_UI.NavButtons_OnData()
+		PARAGON_UI.CurrencyBadges_OnData()
+		PARAGON_UI.ServiceBoxes_OnData()
+	end)
 end
 
 function ParagonHandler.UpdateCurrencies(currencies, paragonData)
-	if currencies then
-		for k, v in pairs(currencies) do
-			PARAGON_UI["Vars"]["playerCurrencies"][k] = v
+	ParagonSafeCall(function()
+		if currencies then
+			for k, v in pairs(currencies) do
+				PARAGON_UI["Vars"]["playerCurrencies"][k] = v
+			end
 		end
-	end
-	if paragonData then
-		PARAGON_UI["Vars"].paragonData = paragonData
-	end
-	PARAGON_UI.CurrencyBadges_Update()
-	PARAGON_UI.ServiceBoxes_Update()
+		if paragonData then
+			PARAGON_UI["Vars"].paragonData = paragonData
+		end
+		PARAGON_UI.CurrencyBadges_Update()
+		PARAGON_UI.ServiceBoxes_Update()
+	end)
 end
 
 
@@ -224,7 +241,7 @@ function PARAGON_UI.NavButtons_Create(parent)
 end
 
 function PARAGON_UI.NavButtons_OnClick(self)
-	if(self.RequiredRank > PARAGON_UI["Vars"].accountRank) then
+	if((self.RequiredRank or 0) > PARAGON_UI["Vars"].accountRank) then
 		UIErrorsFrame:AddMessage(CONFIG.strings.categoryAccessDenied, 1.0, 0.0, 0.0, 2);
 		PlaySound("igPlayerInviteDecline", "Master")
 		return;
@@ -243,10 +260,12 @@ end
 
 function PARAGON_UI.NavButtons_UpdateSelect()
 	for i = 1, CONFIG.maxCategories do
-		PARAGON_UI["NAV_BUTTONS"][i]:UnlockHighlight()
+		local btn = PARAGON_UI["NAV_BUTTONS"][i]
+		if btn then btn:UnlockHighlight() end
 	end
 
-	PARAGON_UI["NAV_BUTTONS"][PARAGON_UI["Vars"].currentNavId]:LockHighlight()
+	local activeBtn = PARAGON_UI["NAV_BUTTONS"][PARAGON_UI["Vars"].currentNavId]
+	if activeBtn then activeBtn:LockHighlight() end
 end
 
 function PARAGON_UI.NavButtons_OnData()
@@ -259,13 +278,16 @@ function PARAGON_UI.NavButtons_OnData()
 
 		if(v[KEYS.category.enabled] == 1) then
 			local button = PARAGON_UI["NAV_BUTTONS"][index]
+			if not button then break end
 			button.CategoryId = v[KEYS.category.id]
-			button.NameText = v[KEYS.category.name]
+			button.NameText = v[KEYS.category.name] or ""
 			button.IconTexture = v[KEYS.category.icon]
-			button.RequiredRank = v[KEYS.category.requiredRank]
-			button.CategoryFlags = v[KEYS.category.flags]
+			button.RequiredRank = v[KEYS.category.requiredRank] or 0
+			button.CategoryFlags = v[KEYS.category.flags] or 0
 
-			button.Icon:SetTexture("Interface/Icons/" .. button.IconTexture .. ".blp")
+			if button.IconTexture then
+				button.Icon:SetTexture("Interface/Icons/" .. button.IconTexture .. ".blp")
+			end
 			button.Name:SetFormattedText("|cffdbe005%s|r", button.NameText)
 
 			button:Show()
@@ -489,9 +511,11 @@ function PARAGON_UI.ServiceBoxes_Update()
 			local currencyEntry = currencyData[service.Currency]
 			local currencyIcon = currencyEntry and currencyEntry[KEYS.currency.icon]
 
-			service.Icon:SetTexture("Interface/Icons/" .. service.IconTexture)
-			service.NameFont:SetFormattedText("|cffffffff%s|r", service.Name)
-			service.PriceFont:SetFormattedText("|cffdbe005%i|r", service.Price)
+			if service.IconTexture then
+				service.Icon:SetTexture("Interface/Icons/" .. service.IconTexture)
+			end
+			service.NameFont:SetFormattedText("|cffffffff%s|r", service.Name or "")
+			service.PriceFont:SetFormattedText("|cffdbe005%i|r", service.Price or 0)
 			if currencyIcon then
 				service.currencyIcon:SetTexture("Interface/Store_UI/Currencies/" .. currencyIcon)
 			end
@@ -585,6 +609,7 @@ function PARAGON_UI.PageButtons_OnClick(val)
 end
 
 function PARAGON_UI.PageButtons_Update()
+	if not PARAGON_UI["PAGING_ELEMENTS"] then return end
 	local currentPage = PARAGON_UI["Vars"].currentPage
 	local maxPages = PARAGON_UI["Vars"].maxPages
 
@@ -709,10 +734,12 @@ end
 
 -- Main frame toggle
 function MainFrame_Toggle()
-	if PARAGON_UI["FRAME"]:IsShown() and PARAGON_UI["FRAME"]:IsVisible() then
-		PARAGON_UI["FRAME"]:Hide()
+	local frame = PARAGON_UI["FRAME"]
+	if not frame then return end
+	if frame:IsShown() and frame:IsVisible() then
+		frame:Hide()
 	else
-		PARAGON_UI["FRAME"]:Show()
+		frame:Show()
 	end
 end
 
@@ -746,7 +773,7 @@ local function ModifyGameMenuFrame()
 end
 
 -- Initialize
-PARAGON_UI.MainFrame_Create()
+ParagonSafeCall(PARAGON_UI.MainFrame_Create)
 
 -- Try immediately; if GameMenuFrame doesn't exist yet, retry on PLAYER_ENTERING_WORLD
 ModifyGameMenuFrame()
