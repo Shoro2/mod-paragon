@@ -140,6 +140,9 @@ function PARAGON_UI.MainFrame_Create()
 
 	mainFrame:SetSize(1024*scaleMulti, 658*scaleMulti)
 
+	-- Register frame reference early so MainFrame_Toggle always works
+	PARAGON_UI["FRAME"] = mainFrame
+
 	-- Background texture
 	mainFrame.Background = mainFrame:CreateTexture(nil, "BACKGROUND")
 	mainFrame.Background:SetSize(mainFrame:GetSize())
@@ -154,25 +157,15 @@ function PARAGON_UI.MainFrame_Create()
 	mainFrame.Title:SetPoint("TOP", mainFrame, "TOP", 0, -3)
 	mainFrame.Title:SetText("|cffedd100Character Upgrades|r")
 
-	PARAGON_UI.NavButtons_Create(mainFrame)
-	PARAGON_UI.PageButtons_Create(mainFrame)
-	PARAGON_UI.ServiceBoxes_Create(mainFrame)
-	PARAGON_UI.CurrencyBadges_Create(mainFrame)
+	-- Create sub-components (each wrapped to prevent one failure from breaking everything)
+	ParagonSafeCall(PARAGON_UI.NavButtons_Create, mainFrame)
+	ParagonSafeCall(PARAGON_UI.PageButtons_Create, mainFrame)
+	ParagonSafeCall(PARAGON_UI.ServiceBoxes_Create, mainFrame)
+	ParagonSafeCall(PARAGON_UI.CurrencyBadges_Create, mainFrame)
 
 	-- Request all data from server
 	AIO.Handle("PARAGON_SERVER", "FrameData")
 	AIO.Handle("PARAGON_SERVER", "UpdateCurrencies")
-
-	if MainMenuMicroButton then
-		MainMenuMicroButton:SetScript(
-			"OnClick",
-			function()
-				if GameMenuFrame and GameMenuFrame:IsShown() then
-					MainFrame_Toggle()
-				end
-			end
-		)
-	end
 
 	mainFrame.CloseButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
 	mainFrame.CloseButton:SetSize(30, 30)
@@ -201,8 +194,6 @@ function PARAGON_UI.MainFrame_Create()
 	)
 
 	tinsert(UISpecialFrames, mainFrame:GetName())
-
-	PARAGON_UI["FRAME"] = mainFrame
 end
 
 -- Navigation buttons
