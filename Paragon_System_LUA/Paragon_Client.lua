@@ -68,21 +68,23 @@ end
 
 local ParagonHandler = AIO.AddHandlers("PARAGON_CLIENT", {})
 
-function ParagonHandler.FrameData(player, services, links, nav, currencies, rank, paragonData)
-	PARAGON_UI["Data"].services = services
-	PARAGON_UI["Data"].links = links
-	PARAGON_UI["Data"].nav = nav
-	PARAGON_UI["Data"].currencies = currencies
-	PARAGON_UI["Vars"].accountRank = rank
+function ParagonHandler.FrameData(services, links, nav, currencies, rank, paragonData)
+	PARAGON_UI["Data"].services = services or {}
+	PARAGON_UI["Data"].links = links or {}
+	PARAGON_UI["Data"].nav = nav or {}
+	PARAGON_UI["Data"].currencies = currencies or {}
+	PARAGON_UI["Vars"].accountRank = rank or 0
 	PARAGON_UI["Vars"].paragonData = paragonData or {}
 	PARAGON_UI.NavButtons_OnData()
 	PARAGON_UI.CurrencyBadges_OnData()
 	PARAGON_UI.ServiceBoxes_OnData()
 end
 
-function ParagonHandler.UpdateCurrencies(player, currencies, paragonData)
-	for k, v in pairs(currencies) do
-		PARAGON_UI["Vars"]["playerCurrencies"][k] = v
+function ParagonHandler.UpdateCurrencies(currencies, paragonData)
+	if currencies then
+		for k, v in pairs(currencies) do
+			PARAGON_UI["Vars"]["playerCurrencies"][k] = v
+		end
 	end
 	if paragonData then
 		PARAGON_UI["Vars"].paragonData = paragonData
@@ -272,9 +274,11 @@ function PARAGON_UI.NavButtons_OnData()
 	end
 
 	local button = PARAGON_UI["NAV_BUTTONS"][1]
-	PARAGON_UI["Vars"].currentCategory = button.CategoryId
-	PARAGON_UI["Vars"].currentCategoryFlags = button.CategoryFlags
-	PARAGON_UI["Vars"].currentNavId = button.NavId
+	if button and button.CategoryId then
+		PARAGON_UI["Vars"].currentCategory = button.CategoryId
+		PARAGON_UI["Vars"].currentCategoryFlags = button.CategoryFlags or 0
+		PARAGON_UI["Vars"].currentNavId = button.NavId or 1
+	end
 
 	PARAGON_UI.NavButtons_UpdateSelect()
 end
@@ -483,12 +487,15 @@ function PARAGON_UI.ServiceBoxes_Update()
 			service.AuraId = serviceData[KEYS.service.reward_1]
 
 			local currencyData = PARAGON_UI["Data"].currencies
-			local currencyIcon = currencyData[service.Currency][KEYS.currency.icon]
+			local currencyEntry = currencyData[service.Currency]
+			local currencyIcon = currencyEntry and currencyEntry[KEYS.currency.icon]
 
 			service.Icon:SetTexture("Interface/Icons/" .. service.IconTexture)
 			service.NameFont:SetFormattedText("|cffffffff%s|r", service.Name)
 			service.PriceFont:SetFormattedText("|cffdbe005%i|r", service.Price)
-			service.currencyIcon:SetTexture("Interface/Store_UI/Currencies/" .. currencyIcon)
+			if currencyIcon then
+				service.currencyIcon:SetTexture("Interface/Store_UI/Currencies/" .. currencyIcon)
+			end
 
 			-- Show allocated points from paragon data
 			local paragonIndex = AURA_TO_PARAGON_INDEX[service.AuraId]
