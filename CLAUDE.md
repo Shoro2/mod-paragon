@@ -46,10 +46,19 @@ mod-paragon/
 ├── data/sql/db-characters/base/
 │   ├── character_paragon_create.sql          # Account-level paragon table
 │   └── character_paragon_points_create.sql   # Character-level stat allocation table
+├── lua_scripts/
+│   └── paragon/                             # Eluna-loadable Lua scripts (v2, auto-copied by CMake)
+│       ├── Paragon_Client.lua               # AIO client-side UI (sent to WoW client)
+│       ├── Paragon_Data.lua                 # Data layer: stat definitions, DB access
+│       └── Paragon_Server.lua               # Server-side handlers (allocate/deallocate)
 ├── Paragon_System_LUA/
-│   ├── Paragon_Client.lua                    # AIO client-side UI for stat allocation
-│   ├── Paragon_Server.lua                    # AIO server-side handlers (allocate/deallocate)
-│   └── Paragon_DataStruct.lua               # Data structures, DB loading, sound effects
+│   ├── Paragon_Client.lua                    # Legacy v1: AIO client-side UI
+│   ├── Paragon_Server.lua                    # Legacy v1: AIO server-side handlers
+│   ├── Paragon_DataStruct.lua               # Legacy v1: Data structures (requires store DB)
+│   └── v2/                                  # v2 source files (canonical copies in lua_scripts/)
+│       ├── Paragon_Client.lua
+│       ├── Paragon_Data.lua
+│       └── Paragon_Server.lua
 ├── src/
 │   ├── Paragon_loader.cpp                    # Module entry point, script registration
 │   ├── ParagonPlayer.cpp                     # Core logic: PlayerScript hooks, XP, auras
@@ -182,7 +191,7 @@ These must exist in the game database/client for the module to function:
 - Standard AzerothCore module: place/symlink into `modules/` directory
 - No custom `CMakeLists.txt` needed (uses AzerothCore module auto-detection)
 - Entry point: `Addmod_paragonScripts()` in `Paragon_loader.cpp`
-- **Lua files** must be placed in the Eluna script directory (not auto-loaded by the C++ module system)
+- **Lua files** are in `lua_scripts/paragon/` and automatically copied to the Eluna script directory by CMake during build/install
 - **AIO dependency**: The Lua system requires [AIO by Rochet2](https://github.com/Rochet2/AIO) installed on the server
 - **Client patch**: Custom UI textures must be delivered via an MPQ patch to WoW clients
 
