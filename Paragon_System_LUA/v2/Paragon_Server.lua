@@ -69,7 +69,6 @@ function Handlers.AllocatePoint(player, statId)
 
 	-- Check available points
 	if ParagonV2.GetAvailablePoints(player) < 1 then
-		-- Send "not enough" sound to client
 		local soundId = ParagonV2.GetSoundEffect(player)
 		AIO.Handle(player, "PARAGON_V2_CLIENT", "PlaySound", soundId)
 		return
@@ -88,11 +87,12 @@ function Handlers.AllocatePoint(player, statId)
 		aura:SetStackAmount(newValue)
 	end
 
-	-- Update DB
+	-- Update DB (async) and send known values to client immediately
 	ParagonV2.UpdateAllocation(characterID, stat.dbColumn, newValue)
-
-	-- Send updated data to client
-	SendUpdatedPoints(player)
+	allocations[statId] = newValue
+	local availablePoints = ParagonV2.GetAvailablePoints(player)
+	AIO.Handle(player, "PARAGON_V2_CLIENT", "UpdatePoints",
+		allocations, availablePoints)
 end
 
 --- Deallocate one point from a stat.
@@ -128,19 +128,10 @@ function Handlers.DeallocatePoint(player, statId)
 	-- Refund 1 Paragon Point item
 	player:AddItem(ParagonV2.CURRENCY_ITEM_ID, 1)
 
-	-- Update DB
+	-- Update DB (async) and send known values to client immediately
 	ParagonV2.UpdateAllocation(characterID, stat.dbColumn, newValue)
-
-	-- Send updated data to client
-	SendUpdatedPoints(player)
-end
-
---- Helper: send updated allocations and available points to the client.
-function SendUpdatedPoints(player)
-	local characterID = player:GetGUIDLow()
-	local allocations = ParagonV2.GetAllocations(characterID)
+	allocations[statId] = newValue
 	local availablePoints = ParagonV2.GetAvailablePoints(player)
-
 	AIO.Handle(player, "PARAGON_V2_CLIENT", "UpdatePoints",
 		allocations, availablePoints)
 end
