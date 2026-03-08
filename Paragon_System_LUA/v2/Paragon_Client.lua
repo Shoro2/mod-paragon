@@ -412,27 +412,40 @@ end
 ---------------------------------------------------------------------------
 -- Game Menu Integration
 ---------------------------------------------------------------------------
+local gameMenuModified = false
 local function AddParagonToGameMenu()
-	local menuBtn = CreateFrame("Button", "GameMenuButtonParagonV2", GameMenuFrame, "GameMenuButtonTemplate")
-	menuBtn:SetText("Paragon")
-	menuBtn:SetPoint("TOP", GameMenuButtonLogout, "BOTTOM", 0, -2)
+	if gameMenuModified then return end
+	local frame = GameMenuFrame
+	if not frame then return end
 
-	menuBtn:SetScript("OnClick", function()
-		HideUIPanel(GameMenuFrame)
-		-- Request data from server, which will trigger ReceiveData -> Show
+	gameMenuModified = true
+
+	-- Resize frame and reposition options button to make room
+	local optionsBtn = GameMenuButtonOptions
+	if optionsBtn then
+		frame:SetSize(195, 270)
+		optionsBtn:SetPoint("CENTER", frame, "TOP", 0, -70)
+	end
+
+	local paragonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	paragonButton:SetPoint("CENTER", frame, 0, 95)
+	paragonButton:SetSize(144, 21)
+
+	paragonButton.Text = paragonButton:CreateFontString()
+	paragonButton.Text:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
+	paragonButton.Text:SetShadowOffset(1, -1)
+	paragonButton.Text:SetPoint("CENTER", paragonButton, "CENTER", 0, 1)
+	paragonButton.Text:SetText("|cffdbe005Paragon")
+
+	paragonButton:SetScript("OnClick", function()
+		HideUIPanel(frame)
 		AIO.Handle("PARAGON_V2_SERVER", "RequestData")
 	end)
-
-	-- Shift the existing buttons down to make room
-	GameMenuFrame:SetHeight(GameMenuFrame:GetHeight() + menuBtn:GetHeight() + 2)
 end
 
--- Hook into game menu creation
-local menuHook = CreateFrame("Frame")
-menuHook:RegisterEvent("PLAYER_LOGIN")
-menuHook:SetScript("OnEvent", function()
-	AddParagonToGameMenu()
-end)
+-- AIO addon code executes after PLAYER_LOGIN has already fired,
+-- so call directly instead of waiting for an event.
+AddParagonToGameMenu()
 
 ---------------------------------------------------------------------------
 -- Slash command
