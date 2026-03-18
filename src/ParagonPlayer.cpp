@@ -10,6 +10,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "LuaEngine.h"
+#include "CharacterDatabase.h"
 
 
 
@@ -34,9 +35,6 @@ enum Spellids
     AURA_EXPERTISE = 100024,
     AURA_PARRY = 100025,
     AURA_DODGE = 100026,
-
-    
-    
 };
 
 void RefreshParagonAura(Player* player, uint8 pstrength, uint8 pintellect, uint8 pagility, uint8 pspirit, uint8 pstamina, uint8 phaste, uint8 parmpen, uint8 pspellpower, uint8 pcrit, uint8 pmspeed, uint8 pmreg, uint8 phit, uint8 pblock, uint8 pexpertise, uint8 pdodge, uint8 pparry) {
@@ -57,9 +55,6 @@ void RefreshParagonAura(Player* player, uint8 pstrength, uint8 pintellect, uint8
     player->RemoveAura(AURA_EXPERTISE);
     player->RemoveAura(AURA_PARRY);
     player->RemoveAura(AURA_DODGE);
-
-
-
 
     if (pstrength > 0) player->AddAura(AURA_STRENGTH, player);
     if (pstrength > 0) player->SetAuraStack(AURA_STRENGTH, player, pstrength);
@@ -94,8 +89,6 @@ void RefreshParagonAura(Player* player, uint8 pstrength, uint8 pintellect, uint8
     if (pdodge > 0) player->AddAura(AURA_DODGE, player);
     if (pdodge > 0) player->SetAuraStack(AURA_DODGE, player, pdodge);
 
-
-
     if (!player->GetMap()->IsDungeon() && !player->GetMap()->IsRaid()) {
         player->SetHealth(player->GetMaxHealth());
         if (player->getPowerType() == POWER_MANA) {
@@ -108,33 +101,36 @@ void RefreshParagonAura(Player* player, uint8 pstrength, uint8 pintellect, uint8
 
 void ApplyParagonStatEffects(Player* player)
 {
-    QueryResult qrtwo = CharacterDatabase.Query("SELECT * FROM character_paragon_points WHERE characterID = '{}'", player->GetGUID().GetRawValue());
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_POINTS);
+    stmt->SetData(0, player->GetGUID().GetCounter());
+    PreparedQueryResult qrtwo = CharacterDatabase.Query(stmt);
     if (!qrtwo)
         return;
 
-    uint32 pstrength = (*qrtwo)[1].Get<uint32>();
-    uint32 pintellect = (*qrtwo)[2].Get<uint32>();
-    uint32 pagility = (*qrtwo)[3].Get<uint32>();
-    uint32 pspirit = (*qrtwo)[4].Get<uint32>();
-    uint32 pstamina = (*qrtwo)[5].Get<uint32>();
-    uint32 phaste = (*qrtwo)[6].Get<uint32>();
-    uint32 parmpen = (*qrtwo)[7].Get<uint32>();
-    uint32 pspellpower = (*qrtwo)[8].Get<uint32>();
-    uint32 pcrit = (*qrtwo)[9].Get<uint32>();
-    uint32 pmspeed = (*qrtwo)[10].Get<uint32>();
-    uint32 pmreg = (*qrtwo)[11].Get<uint32>();
-    uint32 phit = (*qrtwo)[12].Get<uint32>();
-    uint32 pblock = (*qrtwo)[13].Get<uint32>();
-    uint32 pexpertise = (*qrtwo)[14].Get<uint32>();
-    uint32 pparry = (*qrtwo)[15].Get<uint32>();
-    uint32 pdodge = (*qrtwo)[16].Get<uint32>();
+    uint32 pstrength = (*qrtwo)[0].Get<uint32>();
+    uint32 pintellect = (*qrtwo)[1].Get<uint32>();
+    uint32 pagility = (*qrtwo)[2].Get<uint32>();
+    uint32 pspirit = (*qrtwo)[3].Get<uint32>();
+    uint32 pstamina = (*qrtwo)[4].Get<uint32>();
+    uint32 phaste = (*qrtwo)[5].Get<uint32>();
+    uint32 parmpen = (*qrtwo)[6].Get<uint32>();
+    uint32 pspellpower = (*qrtwo)[7].Get<uint32>();
+    uint32 pcrit = (*qrtwo)[8].Get<uint32>();
+    uint32 pmspeed = (*qrtwo)[9].Get<uint32>();
+    uint32 pmreg = (*qrtwo)[10].Get<uint32>();
+    uint32 phit = (*qrtwo)[11].Get<uint32>();
+    uint32 pblock = (*qrtwo)[12].Get<uint32>();
+    uint32 pexpertise = (*qrtwo)[13].Get<uint32>();
+    uint32 pparry = (*qrtwo)[14].Get<uint32>();
+    uint32 pdodge = (*qrtwo)[15].Get<uint32>();
 
     uint32 unspentPoints = player->GetItemCount(920920);
-    ObjectGuid pGUID = player->GetGUID();
-    uint32 characterID = pGUID.GetRawValue();
+    uint32 characterID = player->GetGUID().GetCounter();
     uint8 paragonLevel = player->GetAuraCount(AURA_PARAGONLEVEL);
     if ((pstrength + pintellect + pagility + pspirit + pstamina + phaste + parmpen + pspellpower + pcrit + pmspeed + pmreg + phit + pblock + pexpertise + pparry + pdodge + unspentPoints) != paragonLevel * 5) {
-        CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0, phaste = 0, parmpen = 0, pspellpower = 0,  pcrit = 0, pmspeed = 0, pmreg = 0, phit = 0, pblock = 0, pexpertise = 0, pparry = 0, pdodge = 0 WHERE characterID = '{}'", characterID);
+        CharacterDatabasePreparedStatement* resetStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_POINTS_RESET);
+        resetStmt->SetData(0, characterID);
+        CharacterDatabase.Execute(resetStmt);
         ChatHandler(player->GetSession()).SendSysMessage("There was an error loading your Paragon points, please reallocate them!");
         player->DestroyItemCount(920920, player->GetItemCount(920920), true);
         player->AddItem(920920, paragonLevel * 5);
@@ -153,17 +149,22 @@ public:
 
     void OnPlayerLogin(Player* player) override {
         uint32 accountID = player->GetSession()->GetAccountId();
-        ObjectGuid pGUID = player->GetGUID();
-        uint32 characterID = pGUID.GetRawValue();
-        QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+        uint32 characterID = player->GetGUID().GetCounter();
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
+        stmt->SetData(0, accountID);
+        PreparedQueryResult qr = CharacterDatabase.Query(stmt);
         if (qr) {
             uint32 paragonLevel = (*qr)[0].Get<uint32>();
             player->AddAura(AURA_PARAGONLEVEL, player);
             player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
-            QueryResult qrtwor = CharacterDatabase.Query("SELECT * FROM character_paragon_points WHERE characterID = '{}'", characterID);
+            CharacterDatabasePreparedStatement* ptsStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_POINTS);
+            ptsStmt->SetData(0, characterID);
+            PreparedQueryResult qrtwor = CharacterDatabase.Query(ptsStmt);
             if(!qrtwor) // has account but fresh char
             {
-                CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina, phaste, parmpen, pspellpower, pcrit, pmspeed, pmreg, phit, pblock, pexpertise, pparry, pdodge) VALUES ('{}', 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)", characterID);
+                CharacterDatabasePreparedStatement* insStmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON_POINTS);
+                insStmt->SetData(0, characterID);
+                CharacterDatabase.Execute(insStmt);
                 ApplyParagonStatEffects(player);
             }
             else {
@@ -172,8 +173,12 @@ public:
         }
         else {
             //unlock paragon
-            CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 1, 100)", accountID);
-            CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina, phaste, parmpen, pspellpower, pcrit, pmspeed, pmreg, phit, pblock, pexpertise, pparry, pdodge) VALUES ('{}', 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)", characterID);
+            CharacterDatabasePreparedStatement* insParagon = CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON);
+            insParagon->SetData(0, accountID);
+            CharacterDatabase.Execute(insParagon);
+            CharacterDatabasePreparedStatement* insPoints = CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON_POINTS);
+            insPoints->SetData(0, characterID);
+            CharacterDatabase.Execute(insPoints);
         }
 
     }
@@ -183,7 +188,9 @@ public:
         if (!player->HasAura(AURA_PARAGONLEVEL))
         {
             uint32 accountID = player->GetSession()->GetAccountId();
-            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
+            stmt->SetData(0, accountID);
+            PreparedQueryResult qr = CharacterDatabase.Query(stmt);
             if (qr) {
                 uint32 paragonLevel = (*qr)[0].Get<uint32>();
                 if (paragonLevel > 0) {
@@ -191,13 +198,13 @@ public:
                     player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel);
                     ApplyParagonStatEffects(player);
                 }
-                
+
             }
         }
         else {
             ApplyParagonStatEffects(player);
         }
-        
+
     }
 
     void OnPlayerLevelChanged(Player* player, uint8 /*oldlevel*/) override
@@ -205,24 +212,31 @@ public:
         if (player->GetLevel() == 80 && !player->HasAura(AURA_PARAGONLEVEL))
         {
             //create entry in character_paragon
-            ObjectGuid pGUID = player->GetGUID();
-            uint32 characterID = pGUID.GetRawValue();
+            uint32 characterID = player->GetGUID().GetCounter();
             uint32 accountID = player->GetSession()->GetAccountId();
-            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
+            stmt->SetData(0, accountID);
+            PreparedQueryResult qr = CharacterDatabase.Query(stmt);
             if (!qr) {
-                CharacterDatabase.Query("INSERT INTO character_paragon (accountID, level, xp) VALUES ('{}', 1, 100)", accountID);
-                CharacterDatabase.Query("INSERT INTO character_paragon_points (characterID, pstrength, pintellect, pagility, pspirit, pstamina, phaste, parmpen, pspellpower, pcrit, pmspeed, pmreg, phit, pblock, pexpertise, pparry, pdodge) VALUES ('{}', 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)", characterID);
+                CharacterDatabasePreparedStatement* insParagon = CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON);
+                insParagon->SetData(0, accountID);
+                CharacterDatabase.Execute(insParagon);
+                CharacterDatabasePreparedStatement* insPoints = CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON_POINTS);
+                insPoints->SetData(0, characterID);
+                CharacterDatabase.Execute(insPoints);
             }
         }
     }
 
     /*
-    void OnPlayerResurrect(Player* player, float /*restore_percent, bool /*applySickness) override
+    void OnPlayerResurrect(Player* player, float restore_percent, bool applySickness) override
     {
         if (!player->HasAura(AURA_PARAGONLEVEL))
         {
             uint32 accountID = player->GetSession()->GetAccountId();
-            QueryResult qr = CharacterDatabase.Query("Select level FROM character_paragon WHERE accountID = '{}'", accountID);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
+            stmt->SetData(0, accountID);
+            PreparedQueryResult qr = CharacterDatabase.Query(stmt);
             if (qr) {
                 uint32 paragonLevel = (*qr)[0].Get<uint32>();
                 if (paragonLevel > 0) {
@@ -248,7 +262,7 @@ public:
     void OnPlayerCreatureKill(Player* killer, Creature* killed) override
     {
         CalculateXPGain(killer, killed);
-       
+
     }
 
 
@@ -264,9 +278,6 @@ public:
             uint32 xpAmount = 0;
             if ((killed->GetLevel() - killer->GetLevel() >= 0) && !killed->IsPet()) {
                 bool isElite = killed->isElite(), isDungeon = killed->GetMap()->IsNonRaidDungeon(), isRaid = killed->GetMap()->IsRaid(), isWorldBoss = killed->isWorldBoss(), isHeroic = killed->GetMap()->IsHeroic(), isDungeonBoss = killed->IsDungeonBoss();
-                //std::ostringstream ss;
-                //ss << "isElite: " << isElite << ", isDungeon: " << isDungeon << ", isRaid: " << isRaid <<", isWorldBoss: " << isWorldBoss << ", isHeroic: " << isHeroic << ", isDungeonBoss: " << isDungeonBoss;
-                //ChatHandler(killer->GetSession()).SendSysMessage(ss.str().c_str());
                 // normal elite: 1
                 if (isElite && (!isDungeon && !isRaid) && !isWorldBoss) {
                     xpAmount = 1;
@@ -318,7 +329,7 @@ public:
                     }
                 }
 
-                
+
             }
 
         }
@@ -326,14 +337,16 @@ public:
 
     // On Quest reward
 
-    
+
 
 };
 
 void IncreaseParagonXP(Player* player, uint32 value)
 {
     uint32 accountID = player->GetSession()->GetAccountId();
-    QueryResult qr = CharacterDatabase.Query("Select level, xp FROM character_paragon WHERE accountID = '{}'", accountID);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL_XP);
+    stmt->SetData(0, accountID);
+    PreparedQueryResult qr = CharacterDatabase.Query(stmt);
     if (qr) {
         uint32 paragonLevel = (*qr)[0].Get<uint32>();
         uint32 paragonXP = (*qr)[1].Get<uint32>();
@@ -355,7 +368,10 @@ void IncreaseParagonXP(Player* player, uint32 value)
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 newXP = 100;
             }
-            QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE accountID = '{}'", static_cast<uint32>(newXP), accountID);
+            CharacterDatabasePreparedStatement* updStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_LEVELUP);
+            updStmt->SetData(0, static_cast<uint32>(newXP));
+            updStmt->SetData(1, accountID);
+            CharacterDatabase.Execute(updStmt);
             player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
 
             std::ostringstream ss;
@@ -365,7 +381,10 @@ void IncreaseParagonXP(Player* player, uint32 value)
         }
         else {
             //update xp
-            QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = xp - '{}' WHERE accountID = '{}'", value, accountID);
+            CharacterDatabasePreparedStatement* updStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_XP);
+            updStmt->SetData(0, value);
+            updStmt->SetData(1, accountID);
+            CharacterDatabase.Execute(updStmt);
             if (value > 0) {
                 if ((paragonXP - value) % 100 == 0 || value >= 10) {
                     std::ostringstream ss;
