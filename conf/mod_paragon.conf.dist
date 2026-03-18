@@ -33,6 +33,7 @@ Paragon.IdBlock     = 100023
 Paragon.IdExpertise = 100024
 Paragon.IdParry     = 100025
 Paragon.IdDodge     = 100026
+Paragon.IdLifeLeech = 100027
 
 ########################################
 # Points per Level
@@ -61,3 +62,11 @@ Paragon.XPQuest             = 3
 
 # Reduces XP in party/raid. XP = XP/PlayerCount
 Paragon.XPPartyReduce = 0
+
+########################################
+# Life Leech
+########################################
+
+# Percentage of damage healed per Life Leech stack.
+# Example: 0.5 = 0.5% per stack, so 100 stacks = 50% life leech
+Paragon.LifeLeechPct = 0.5

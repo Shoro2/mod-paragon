@@ -26,7 +26,7 @@ These two systems are **not integrated** — they operate on the same DB table b
 - **XP Sources**: Creature kills (scaled by difficulty), daily/weekly quests (3 XP each)
 - **Level-up Formula**: Each level requires `100 * 1.1^(level-1)` XP (XP counts down to 0)
 - **Points per Level**: 5 points per level-up, delivered as item `920920` ("unspent points")
-- **C++ Stats (16)**: Strength, Intellect, Agility, Spirit, Stamina, Haste, Armor Pen, Spell Power, Crit, Mount Speed, Mana Regen, Hit, Block, Expertise, Parry, Dodge
+- **C++ Stats (17)**: Strength, Intellect, Agility, Spirit, Stamina, Haste, Armor Pen, Spell Power, Crit, Mount Speed, Mana Regen, Hit, Block, Expertise, Parry, Dodge, Life Leech
 - **Lua Stats (5)**: Strength, Intellect, Agility, Spirit, Stamina (mapped to aura IDs 100001-100005)
 - **Aura System**: Stats are applied as invisible spell auras with stacked amounts
 - **NPC**: Gossip-based NPC (`npc_paragon`) for info and point reset
@@ -169,7 +169,7 @@ A WoW addon UI built using WoW's frame API, sent to clients via AIO:
 | `pspirit`     | INT      | Points in Spirit        |
 | `pstamina`    | INT      | Points in Stamina       |
 
-**CRITICAL**: The SQL schema only defines 5 stat columns, but the C++ code reads 16 columns (indices 1-16). The missing columns are: `phaste`, `parmpen`, `pspellpower`, `pcrit`, `pmspeed`, `pmreg`, `phit`, `pblock`, `pexpertise`, `pparry`, `pdodge`. The SQL must be updated to match the C++ code.
+The SQL schema defines all 17 stat columns matching the C++ code: `pstrength`, `pintellect`, `pagility`, `pspirit`, `pstamina`, `phaste`, `parmpen`, `pspellpower`, `pcrit`, `pmspeed`, `pmreg`, `phit`, `pblock`, `pexpertise`, `pparry`, `pdodge`, `plifeleech`.
 
 ### `store.*` — External store database (Lua system)
 

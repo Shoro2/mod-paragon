@@ -11,7 +11,7 @@
 #include <mutex>
 #include <unordered_map>
 
-constexpr uint32 STAT_COUNT = 16;
+constexpr uint32 STAT_COUNT = 17;
 constexpr uint32 PARAGON_POINT_ITEM = 920920;
 
 // Configuration values (loaded from mod_paragon.conf)
@@ -28,6 +28,7 @@ static uint32   conf_XPHCDungeonBoss  = 5;
 static uint32   conf_XPRaidBoss       = 10;
 static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
+static float    conf_LifeLeechPct     = 0.5f; // % heal per stack
 
 // Stat aura IDs (configurable, defaults match Lua system)
 static uint32 conf_AuraIds[STAT_COUNT] = {
@@ -47,6 +48,7 @@ static uint32 conf_AuraIds[STAT_COUNT] = {
     100024, // Expertise
     100025, // Parry
     100026, // Dodge
+    100027, // Life Leech
 };
 
 // In-memory cache for paragon level/XP per account
@@ -508,6 +510,47 @@ public:
             "Paragon.IdParry", 100025);
         conf_AuraIds[15] = sConfigMgr->GetOption<uint32>(
             "Paragon.IdDodge", 100026);
+        conf_AuraIds[16] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdLifeLeech", 100027);
+        conf_LifeLeechPct = sConfigMgr->GetOption<float>(
+            "Paragon.LifeLeechPct", 0.5f);
+    }
+};
+
+class ParagonLifeLeech : public UnitScript
+{
+public:
+    ParagonLifeLeech() : UnitScript(
+        "ParagonLifeLeech", true,
+        { UNITHOOK_ON_DAMAGE }) { }
+
+    void OnDamage(Unit* attacker, Unit* /*victim*/,
+                  uint32& damage) override
+    {
+        if (!conf_Enable || !attacker || damage == 0)
+            return;
+
+        Player* player = attacker->ToPlayer();
+        if (!player)
+            return;
+
+        uint32 leechAura = conf_AuraIds[16]; // Life Leech
+        Aura* aura = player->GetAura(leechAura);
+        if (!aura)
+            return;
+
+        uint32 stacks = aura->GetStackAmount();
+        if (stacks == 0)
+            return;
+
+        // heal = damage * stacks * pct / 100
+        float healPct = stacks * conf_LifeLeechPct;
+        uint32 healAmount =
+            static_cast<uint32>(damage * healPct / 100.0f);
+        if (healAmount == 0)
+            return;
+
+        Unit::DealHeal(player, player, healAmount);
     }
 };
 
@@ -515,4 +558,5 @@ void AddParagonPlayerScripts()
 {
     new ParagonPlayer();
     new ParagonConfig();
+    new ParagonLifeLeech();
 }
