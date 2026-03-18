@@ -345,14 +345,17 @@ void IncreaseParagonXP(Player* player, uint32 value)
         if (diff <= 0) // level up
         {
             uint32 xpLeft = value - paragonXP; // +10
-            uint32 newXP = (100 * pow(1.1, paragonLevel - 1)) - xpLeft; // (100 * (pow(1.1, (1 - 1)))) - 10
+            double xpRequired = 100.0 * pow(1.1, paragonLevel - 1);
+            if (xpRequired > 2000000000.0)
+                xpRequired = 2000000000.0;
+            int64 newXP = static_cast<int64>(xpRequired) - static_cast<int64>(xpLeft);
             if (newXP < 0) {
                 std::ostringstream ss;
                 ss << "There was an error calculating paragon level, please report this to discord! xp left: " << xpLeft << ", paragon level: " << paragonLevel << ", value: " << value << ", newxp: " << newXP;
                 ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
                 newXP = 100;
             }
-            QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE accountID = '{}'", newXP, accountID);
+            QueryResult qr = CharacterDatabase.Query("UPDATE character_paragon SET xp = '{}', level = level + 1 WHERE accountID = '{}'", static_cast<uint32>(newXP), accountID);
             player->SetAuraStack(AURA_PARAGONLEVEL, player, paragonLevel + 1);
 
             std::ostringstream ss;

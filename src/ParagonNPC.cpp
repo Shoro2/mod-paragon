@@ -50,7 +50,7 @@ public:
         ObjectGuid pGUID = player->GetGUID();
         uint32 characterID = pGUID.GetRawValue();
         uint32 accountID = player->GetSession()->GetAccountId();
-        CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0 WHERE characterID = '{}'", characterID);
+        CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0, phaste = 0, parmpen = 0, pspellpower = 0, pcrit = 0, pmspeed = 0, pmreg = 0, phit = 0, pblock = 0, pexpertise = 0, pparry = 0, pdodge = 0 WHERE characterID = '{}'", characterID);
         player->GetSession()->LogoutPlayer(true);
     }
 };
