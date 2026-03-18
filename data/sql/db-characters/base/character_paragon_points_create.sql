@@ -16,5 +16,6 @@ CREATE TABLE `character_paragon_points` (
   `pexpertise` int DEFAULT '0',
   `pparry` int DEFAULT '0',
   `pdodge` int DEFAULT '0',
+  `plifeleech` int DEFAULT '0',
   PRIMARY KEY (`characterID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

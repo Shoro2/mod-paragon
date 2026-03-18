@@ -207,6 +207,18 @@ ParagonV2.STATS = {
 		maxPoints = 255,
 		categoryId = 4,
 	},
+
+	-- Special (Category 2 - Offensive)
+	{
+		id = 17,
+		name = "Life Leech",
+		tooltip = "Heals you for a percentage of damage dealt.",
+		icon = "Interface/Icons/Spell_Shadow_LifeDrain02",
+		auraId = 100027,
+		dbColumn = "plifeleech",
+		maxPoints = 255,
+		categoryId = 2,
+	},
 }
 
 -- Build lookup tables
@@ -229,6 +241,7 @@ ParagonV2.DB_COLUMN_ORDER = {
 	"pstrength", "pintellect", "pagility", "pspirit", "pstamina",
 	"phaste", "parmpen", "pspellpower", "pcrit", "pmspeed",
 	"pmreg", "phit", "pblock", "pexpertise", "pparry", "pdodge",
+	"plifeleech",
 }
 
 -- Map DB column to stat ID
