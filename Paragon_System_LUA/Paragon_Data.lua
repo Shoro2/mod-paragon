@@ -48,7 +48,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_FistOfJustice",
 		auraId = 100001,
 		dbColumn = "pstrength",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 1,
 	},
 	{
@@ -58,7 +58,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MagicalSentry",
 		auraId = 100002,
 		dbColumn = "pintellect",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 1,
 	},
 	{
@@ -68,7 +68,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Eviscerate",
 		auraId = 100003,
 		dbColumn = "pagility",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 1,
 	},
 	{
@@ -78,7 +78,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_Requiem",
 		auraId = 100004,
 		dbColumn = "pspirit",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 1,
 	},
 	{
@@ -88,7 +88,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_WordFortitude",
 		auraId = 100005,
 		dbColumn = "pstamina",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 1,
 	},
 
@@ -100,7 +100,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_Bloodlust",
 		auraId = 100016,
 		dbColumn = "phaste",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 2,
 	},
 	{
@@ -110,7 +110,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Warrior_Sunder",
 		auraId = 100017,
 		dbColumn = "parmpen",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 2,
 	},
 	{
@@ -120,7 +120,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MindSooth",
 		auraId = 100018,
 		dbColumn = "pspellpower",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 2,
 	},
 	{
@@ -130,7 +130,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_ShadowPact",
 		auraId = 100019,
 		dbColumn = "pcrit",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 2,
 	},
 	{
@@ -140,7 +140,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_FingerOfDeath",
 		auraId = 100022,
 		dbColumn = "phit",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 2,
 	},
 
@@ -152,7 +152,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Defend",
 		auraId = 100023,
 		dbColumn = "pblock",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 3,
 	},
 	{
@@ -162,7 +162,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_SealOfMight",
 		auraId = 100024,
 		dbColumn = "pexpertise",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 3,
 	},
 	{
@@ -172,7 +172,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Parry",
 		auraId = 100025,
 		dbColumn = "pparry",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 3,
 	},
 	{
@@ -182,7 +182,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Feint",
 		auraId = 100026,
 		dbColumn = "pdodge",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 3,
 	},
 
@@ -194,7 +194,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Mount_RidingHorse",
 		auraId = 100020,
 		dbColumn = "pmspeed",
-		maxPoints = 50,
+		maxPoints = 255,
 		categoryId = 4,
 	},
 	{
@@ -204,7 +204,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_ManaRegenTotem",
 		auraId = 100021,
 		dbColumn = "pmreg",
-		maxPoints = 100,
+		maxPoints = 255,
 		categoryId = 4,
 	},
 }

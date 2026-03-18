@@ -47,15 +47,19 @@ function Handlers.RequestData(player)
 		categories, stats, allocations, availablePoints)
 end
 
---- Allocate one point into a stat.
+--- Allocate points into a stat.
 -- @param player Player object (injected by AIO)
 -- @param statId number - the stat to allocate into
-function Handlers.AllocatePoint(player, statId)
+-- @param amount number - how many points to allocate (default 1)
+function Handlers.AllocatePoint(player, statId, amount)
 	local stat = ParagonV2.STAT_BY_ID[statId]
 	if not stat then
 		player:SendBroadcastMessage("Invalid stat.")
 		return
 	end
+
+	amount = tonumber(amount) or 1
+	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
 	local allocations = ParagonV2.GetAllocations(characterID)
@@ -68,17 +72,23 @@ function Handlers.AllocatePoint(player, statId)
 	end
 
 	-- Check available points
-	if ParagonV2.GetAvailablePoints(player) < 1 then
+	local available = ParagonV2.GetAvailablePoints(player)
+	if available < 1 then
 		local soundId = ParagonV2.GetSoundEffect(player)
 		AIO.Handle(player, "PARAGON_V2_CLIENT", "PlaySound", soundId)
 		return
 	end
 
-	-- Deduct 1 Paragon Point item
-	player:RemoveItem(ParagonV2.CURRENCY_ITEM_ID, 1)
+	-- Clamp amount to what's actually possible
+	local maxCanAllocate = stat.maxPoints - current
+	if amount > maxCanAllocate then amount = maxCanAllocate end
+	if amount > available then amount = available end
+
+	-- Deduct Paragon Point items
+	player:RemoveItem(ParagonV2.CURRENCY_ITEM_ID, amount)
 
 	-- Apply aura
-	local newValue = current + 1
+	local newValue = current + amount
 	if current == 0 then
 		player:AddAura(stat.auraId, player)
 	end
@@ -95,15 +105,19 @@ function Handlers.AllocatePoint(player, statId)
 		allocations, availablePoints)
 end
 
---- Deallocate one point from a stat.
+--- Deallocate points from a stat.
 -- @param player Player object (injected by AIO)
 -- @param statId number - the stat to deallocate from
-function Handlers.DeallocatePoint(player, statId)
+-- @param amount number - how many points to deallocate (default 1)
+function Handlers.DeallocatePoint(player, statId, amount)
 	local stat = ParagonV2.STAT_BY_ID[statId]
 	if not stat then
 		player:SendBroadcastMessage("Invalid stat.")
 		return
 	end
+
+	amount = tonumber(amount) or 1
+	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
 	local allocations = ParagonV2.GetAllocations(characterID)
@@ -114,8 +128,11 @@ function Handlers.DeallocatePoint(player, statId)
 		return
 	end
 
-	-- Remove aura stack
-	local newValue = current - 1
+	-- Clamp amount to current allocation
+	if amount > current then amount = current end
+
+	-- Remove aura stacks
+	local newValue = current - amount
 	if newValue == 0 then
 		player:RemoveAura(stat.auraId)
 	else
@@ -125,8 +142,8 @@ function Handlers.DeallocatePoint(player, statId)
 		end
 	end
 
-	-- Refund 1 Paragon Point item
-	player:AddItem(ParagonV2.CURRENCY_ITEM_ID, 1)
+	-- Refund Paragon Point items
+	player:AddItem(ParagonV2.CURRENCY_ITEM_ID, amount)
 
 	-- Update DB (async) and send known values to client immediately
 	ParagonV2.UpdateAllocation(characterID, stat.dbColumn, newValue)

@@ -276,16 +276,18 @@ local function CreateStatRow(index)
 	-- Store stat ID on the row
 	row.statId = nil
 
-	-- Click handlers
+	-- Click handlers (Shift+Click = 10 points at once)
 	row.plusBtn:SetScript("OnClick", function()
 		if row.statId then
-			AIO.Handle("PARAGON_V2_SERVER", "AllocatePoint", row.statId)
+			local amount = IsShiftKeyDown() and 10 or 1
+			AIO.Handle("PARAGON_V2_SERVER", "AllocatePoint", row.statId, amount)
 		end
 	end)
 
 	row.minusBtn:SetScript("OnClick", function()
 		if row.statId then
-			AIO.Handle("PARAGON_V2_SERVER", "DeallocatePoint", row.statId)
+			local amount = IsShiftKeyDown() and 10 or 1
+			AIO.Handle("PARAGON_V2_SERVER", "DeallocatePoint", row.statId, amount)
 		end
 	end)
 
