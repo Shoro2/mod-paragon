@@ -185,8 +185,8 @@ The Lua system requires a separate `store` database schema with these tables:
 
 These must exist in the game database/client for the module to function:
 
-- **Spell/Aura IDs (C++)**: 100000 (level counter), 7507 (strength), 100002-100005, 100016-100026
-- **Spell/Aura IDs (Lua)**: 100001-100005 (strength, intellect, agility, spirit, stamina — used by AllocatePoint/DeallocatePoint)
+- **Spell/Aura IDs (C++ and Lua, unified)**: 100000 (level counter), 100001-100005 (Str, Int, Agi, Spi, Sta), 100016-100026 (Haste through Dodge)
+- **All Aura IDs are configurable** via `mod_paragon.conf` (Paragon.IdStr, Paragon.IdInt, etc.)
 - **Item ID**: 920920 (unspent paragon points token)
 - **Gossip Text ID**: 197760 (NPC greeting text, must exist in `npc_text`)
 - **NPC Script Name**: `npc_paragon` (must be assigned to a creature via `creature_template.ScriptName`)
@@ -215,57 +215,42 @@ Lua code uses tab indentation and follows standard Eluna API conventions.
 
 ## Known Issues and Improvement Opportunities
 
-### Critical Bugs
+### Critical Bugs (all fixed)
 
-1. **Schema Mismatch** (`character_paragon_points_create.sql` vs `ParagonPlayer.cpp:116-131`): SQL defines 5 stat columns, code reads 16. INSERTs specify 17 columns. All queries against this table will fail at runtime.
-
-2. **NPC Script Not Registered** (`Paragon_loader.cpp:13`): `AddMyNPCScripts()` is never called in the loader. The Paragon NPC gossip is completely non-functional.
-
-3. **Incomplete Point Reset** (`ParagonNPC.cpp:53`): `ResetParagonPoints()` only resets 5 of 16 stats to 0. The other 11 stats remain allocated after a "reset".
-
-4. **Parameter Order Bug** (`ParagonPlayer.cpp:144`): `RefreshParagonAura()` call swaps `pdodge` and `pparry` argument order vs the function signature (line 43), causing these two stats to be applied to the wrong auras.
+1. ~~**Schema Mismatch**~~: FIXED — SQL now has all 16 stat columns.
+2. ~~**NPC Script Not Registered**~~: FIXED — `AddMyNPCScripts()` called in loader.
+3. ~~**Incomplete Point Reset**~~: FIXED — All 16 stats reset via prepared statement.
+4. ~~**Parameter Order Bug**~~: FIXED — Refactored to array-based `RefreshParagonAura()`, no more parameter ordering issues.
 
 ### Security Issues
 
-5. **No Prepared Statements (C++)**: All DB queries use string-formatted `.Query()` / `.Execute()` calls. Should use `CharacterDatabasePreparedStatement`.
-
+5. ~~**No Prepared Statements (C++)**~~: FIXED — All queries use `CharacterDatabasePreparedStatement`.
 6. **SQL Injection in Lua** (`Paragon_Server.lua`): `CharDBExecute` calls use string concatenation with player data. Eluna's DB API doesn't support prepared statements, but values should be validated/sanitized.
 
 ### Functional Gaps
 
-7. **Configuration Never Used**: `mod_paragon.conf.dist` defines Enable, spell IDs, XP values, PPL, and party reduction — but the code hardcodes all values and never calls `sConfigMgr->GetOption<>()`.
-
+7. ~~**Configuration Never Used**~~: FIXED — `ParagonConfig::OnAfterConfigLoad` reads 30+ options from `mod_paragon.conf`.
 8. **Empty Gossip Case** (`ParagonNPC.cpp:34-36`): Case 1 ("How does Abyssal Mastery work?") has no implementation.
-
-9. **Eluna Declaration Without Implementation** (`ParagonUtils.h:10`): `RegisterParagonEluna(lua_State* L)` declared but never defined. Will cause linker errors if called.
-
+9. ~~**Eluna Declaration Without Implementation**~~: FIXED — Removed from `ParagonUtils.h`.
 10. **Forced Logout on Reset** (`ParagonNPC.cpp:54`): `LogoutPlayer(true)` after resetting points. Poor UX — should reapply auras instead.
+11. ~~**Health/Mana Exploit**~~: FIXED — `RefreshParagonAura()` no longer restores HP/mana.
+12. **Missing Store Schema**: No SQL files exist for the `store.*` tables required by the Lua system.
+13. ~~**C++ and Lua Use Different Aura IDs for Strength**~~: FIXED — Both now use `100001`.
 
-11. **Health/Mana Exploit** (`ParagonPlayer.cpp:100-104`): `RefreshParagonAura()` fully restores HP/mana outside dungeons/raids on every aura refresh (login, map change).
+### Code Quality (all fixed)
 
-12. **Missing Store Schema**: No SQL files exist for the `store.*` tables required by the Lua system. Server admins must create these manually.
-
-13. **C++ and Lua Use Different Aura IDs for Strength**: C++ uses aura `7507` for strength, Lua uses `100001`. These will conflict if both systems are active simultaneously.
-
-### Code Quality
-
-14. **Massive Code Duplication in C++** (`ParagonPlayer.cpp:45-96`): 16 identical `RemoveAura` + `if > 0 AddAura/SetAuraStack` blocks. Should use a data-driven loop.
-
-15. **Unused Variables**: `bool debug = true` (C++) is never referenced.
-
-16. **`Query()` for INSERT/UPDATE** (`ParagonPlayer.cpp`): Uses `CharacterDatabase.Query()` for write operations. Should use `.Execute()`.
-
-17. **XP Overflow Risk** (`ParagonPlayer.cpp:349`): `pow(1.1, paragonLevel - 1)` overflows `uint32` at high levels. The `newXP < 0` check is dead code (uint32 is always >= 0).
-
-18. **Duplicated Login/MapChange Logic** (`ParagonPlayer.cpp:155-202`): Nearly identical DB query + aura application logic.
-
-19. **`GetRawValue()` Truncation** (`ParagonPlayer.cpp:112,135`): `ObjectGuid::GetRawValue()` returns `uint64`, stored in `uint32`. Should use `GetCounter()`.
+14. ~~**Massive Code Duplication**~~: FIXED — Data-driven loop with `conf_AuraIds[16]`.
+15. ~~**Unused Variables**~~: FIXED — `bool debug` removed.
+16. ~~**`Query()` for INSERT/UPDATE**~~: FIXED — All write operations use `.Execute()`.
+17. ~~**XP Overflow Risk**~~: FIXED — Proper `int64` arithmetic with cap.
+18. ~~**Duplicated Login/MapChange Logic**~~: FIXED — MapChange reads from in-memory cache via `RestoreFromCache()`.
+19. ~~**`GetRawValue()` Truncation**~~: FIXED — Uses `GetCounter()` consistently.
 
 ### Potential Enhancements
 
 - **Unify C++ and Lua Systems**: Decide on one point-allocation mechanism. Currently both can modify the same DB table with incompatible logic
-- **In-Memory Caching**: Cache paragon level/points in player data to avoid DB queries on every map change
-- **Configurable System**: Read from `mod_paragon.conf.dist` to allow tuning XP rates, points per level, enable/disable
+- ~~**In-Memory Caching**~~: DONE — Account-level cache with mutex protection
+- ~~**Configurable System**~~: DONE — All values read from `mod_paragon.conf`
 - **Anti-Farm Measures**: Cooldown or diminishing returns on XP from repeated kills
 - **Store Schema SQL Files**: Add creation scripts for `store.*` tables
-- **Max Level Cap**: No upper bound on Paragon level — may need a configurable cap
+- ~~**Max Level Cap**~~: DONE — `Paragon.MaxLevel` config option (0 = no limit)
