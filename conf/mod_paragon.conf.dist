@@ -6,22 +6,33 @@
 #
 #    Paragon.Enable
 #        Description: Enable Mod Paragon
-#        Default:     0 - Disabled
-#                     1 - Enabled
+#        Default:     1 - Enabled
+#                     0 - Disabled
 #
 
 Paragon.Enable = 1
 
 ########################################
-# Spell Ids
+# Spell / Aura IDs
 ########################################
 
-Paragon.IdLevel = 100000
-Paragon.IdStr	= 7507
-Paragon.IdInt	= 100002
-Paragon.IdAgi	= 100003
-Paragon.IdSpi	= 100004
-Paragon.IdSta	= 100005
+Paragon.IdLevel     = 100000
+Paragon.IdStr       = 100001
+Paragon.IdInt       = 100002
+Paragon.IdAgi       = 100003
+Paragon.IdSpi       = 100004
+Paragon.IdSta       = 100005
+Paragon.IdHaste     = 100016
+Paragon.IdArmorPen  = 100017
+Paragon.IdSpellPower = 100018
+Paragon.IdCrit      = 100019
+Paragon.IdMountSpeed = 100020
+Paragon.IdManaRegen = 100021
+Paragon.IdHit       = 100022
+Paragon.IdBlock     = 100023
+Paragon.IdExpertise = 100024
+Paragon.IdParry     = 100025
+Paragon.IdDodge     = 100026
 
 ########################################
 # Points per Level
@@ -30,17 +41,23 @@ Paragon.IdSta	= 100005
 Paragon.PPL = 5
 
 ########################################
-# XP
+# Max Level (0 = no limit)
 ########################################
 
-Paragon.XPElite				= 1
-Paragon.XPWorldBoss			= 20
-Paragon.XPDungeonElite		= 3
-Paragon.XPDungeonBoss		= 2
-Paragon.XPHCDungeonElite	= 2
-Paragon.XPHCDungeonBoss		= 5
-Paragon.XPRaidBoss			= 10
+Paragon.MaxLevel = 0
+
+########################################
+# XP Rewards
+########################################
+
+Paragon.XPElite             = 1
+Paragon.XPWorldBoss         = 20
+Paragon.XPDungeonElite      = 1
+Paragon.XPDungeonBoss       = 3
+Paragon.XPHCDungeonElite    = 2
+Paragon.XPHCDungeonBoss     = 5
+Paragon.XPRaidBoss          = 10
+Paragon.XPQuest             = 3
 
 # Reduces XP in party/raid. XP = XP/PlayerCount
-
 Paragon.XPPartyReduce = 0

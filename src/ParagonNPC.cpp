@@ -5,6 +5,7 @@
 #include "ObjectMgr.h"
 #include "GossipDef.h"
 #include "ScriptedGossip.h"
+#include "CharacterDatabase.h"
 
 uint32 gossip_text = 197760;
 
@@ -47,10 +48,10 @@ public:
     }
 
     void ResetParagonPoints(Player* player) {
-        ObjectGuid pGUID = player->GetGUID();
-        uint32 characterID = pGUID.GetRawValue();
-        uint32 accountID = player->GetSession()->GetAccountId();
-        CharacterDatabase.Execute("UPDATE character_paragon_points SET pstrength = 0, pintellect = 0, pagility = 0, pspirit = 0, pstamina = 0, phaste = 0, parmpen = 0, pspellpower = 0, pcrit = 0, pmspeed = 0, pmreg = 0, phit = 0, pblock = 0, pexpertise = 0, pparry = 0, pdodge = 0 WHERE characterID = '{}'", characterID);
+        uint32 characterID = player->GetGUID().GetCounter();
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_POINTS_RESET);
+        stmt->SetData(0, characterID);
+        CharacterDatabase.Execute(stmt);
         player->GetSession()->LogoutPlayer(true);
     }
 };
