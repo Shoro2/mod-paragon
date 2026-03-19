@@ -1,5 +1,5 @@
 --[[
-    Paragon System v2 - Client UI
+    Paragon System - Client UI
     Complete UI for stat allocation, sent to WoW client via AIO.
 ]]
 
@@ -13,7 +13,7 @@ end
 ---------------------------------------------------------------------------
 -- Handler table
 ---------------------------------------------------------------------------
-local Client = AIO.AddHandlers("PARAGON_V2_CLIENT", {})
+local Client = AIO.AddHandlers("PARAGON_CLIENT", {})
 
 ---------------------------------------------------------------------------
 -- State
@@ -99,7 +99,7 @@ end
 -- Main Frame
 ---------------------------------------------------------------------------
 local function CreateMainFrame()
-	mainFrame = CreateFrame("Frame", "ParagonV2Frame", UIParent)
+	mainFrame = CreateFrame("Frame", "ParagonFrame", UIParent)
 	mainFrame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
 	mainFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
 	mainFrame:SetBackdrop(BACKDROP_MAIN)
@@ -115,7 +115,7 @@ local function CreateMainFrame()
 	mainFrame:Hide()
 
 	-- ESC closes
-	table.insert(UISpecialFrames, "ParagonV2Frame")
+	table.insert(UISpecialFrames, "ParagonFrame")
 
 	-- Title
 	titleText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -280,14 +280,14 @@ local function CreateStatRow(index)
 	row.plusBtn:SetScript("OnClick", function()
 		if row.statId then
 			local amount = IsShiftKeyDown() and 10 or 1
-			AIO.Handle("PARAGON_V2_SERVER", "AllocatePoint", row.statId, amount)
+			AIO.Handle("PARAGON_SERVER", "AllocatePoint", row.statId, amount)
 		end
 	end)
 
 	row.minusBtn:SetScript("OnClick", function()
 		if row.statId then
 			local amount = IsShiftKeyDown() and 10 or 1
-			AIO.Handle("PARAGON_V2_SERVER", "DeallocatePoint", row.statId, amount)
+			AIO.Handle("PARAGON_SERVER", "DeallocatePoint", row.statId, amount)
 		end
 	end)
 
@@ -441,7 +441,7 @@ local function AddParagonToGameMenu()
 
 	paragonButton:SetScript("OnClick", function()
 		HideUIPanel(frame)
-		AIO.Handle("PARAGON_V2_SERVER", "RequestData")
+		AIO.Handle("PARAGON_SERVER", "RequestData")
 	end)
 end
 
@@ -452,7 +452,7 @@ AddParagonToGameMenu()
 ---------------------------------------------------------------------------
 -- Slash command
 ---------------------------------------------------------------------------
-SLASH_PARAGONV2_1 = "/paragon"
-SlashCmdList["PARAGONV2"] = function()
-	AIO.Handle("PARAGON_V2_SERVER", "RequestData")
+SLASH_PARAGON1 = "/paragon"
+SlashCmdList["PARAGON"] = function()
+	AIO.Handle("PARAGON_SERVER", "RequestData")
 end
