@@ -1,20 +1,20 @@
 --[[
-    Paragon System v2 - Data Layer
+    Paragon System - Data Layer
     All stat definitions, categories, and DB access functions.
     This file is server-only (no AIO.AddAddon).
 ]]
 
 local AIO = AIO or require("AIO")
 
-ParagonV2 = ParagonV2 or {}
+Paragon = Paragon or {}
 
 -- Currency: Paragon Points item
-ParagonV2.CURRENCY_ITEM_ID = 920920
-ParagonV2.CURRENCY_NAME = "Paragon Points"
-ParagonV2.CURRENCY_ICON = "Interface/Icons/INV_Misc_Gem_Bloodstone_01"
+Paragon.CURRENCY_ITEM_ID = 920920
+Paragon.CURRENCY_NAME = "Paragon Points"
+Paragon.CURRENCY_ICON = "Interface/Icons/INV_Misc_Gem_Bloodstone_01"
 
 -- Max points per stat (must match mod_paragon.conf Paragon.Max* values)
-ParagonV2.MAX_POINTS = {
+Paragon.MAX_POINTS = {
 	Strength       = 255,
 	Intellect      = 255,
 	Agility        = 255,
@@ -35,7 +35,7 @@ ParagonV2.MAX_POINTS = {
 }
 
 -- Categories
-ParagonV2.CATEGORIES = {
+Paragon.CATEGORIES = {
 	{
 		id = 1,
 		name = "Primary Stats",
@@ -60,7 +60,7 @@ ParagonV2.CATEGORIES = {
 
 -- Stat definitions: all 16 paragon stats
 -- Each stat has: id, name, tooltip, icon, auraId, dbColumn, maxPoints, categoryId
-ParagonV2.STATS = {
+Paragon.STATS = {
 	-- Primary Stats (Category 1)
 	{
 		id = 1,
@@ -69,7 +69,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_FistOfJustice",
 		auraId = 100001,
 		dbColumn = "pstrength",
-		maxPoints = ParagonV2.MAX_POINTS.Strength,
+		maxPoints = Paragon.MAX_POINTS.Strength,
 		categoryId = 1,
 	},
 	{
@@ -79,7 +79,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MagicalSentry",
 		auraId = 100002,
 		dbColumn = "pintellect",
-		maxPoints = ParagonV2.MAX_POINTS.Intellect,
+		maxPoints = Paragon.MAX_POINTS.Intellect,
 		categoryId = 1,
 	},
 	{
@@ -89,7 +89,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Eviscerate",
 		auraId = 100003,
 		dbColumn = "pagility",
-		maxPoints = ParagonV2.MAX_POINTS.Agility,
+		maxPoints = Paragon.MAX_POINTS.Agility,
 		categoryId = 1,
 	},
 	{
@@ -99,7 +99,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_Requiem",
 		auraId = 100004,
 		dbColumn = "pspirit",
-		maxPoints = ParagonV2.MAX_POINTS.Spirit,
+		maxPoints = Paragon.MAX_POINTS.Spirit,
 		categoryId = 1,
 	},
 	{
@@ -109,7 +109,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_WordFortitude",
 		auraId = 100005,
 		dbColumn = "pstamina",
-		maxPoints = ParagonV2.MAX_POINTS.Stamina,
+		maxPoints = Paragon.MAX_POINTS.Stamina,
 		categoryId = 1,
 	},
 
@@ -121,7 +121,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_Bloodlust",
 		auraId = 100016,
 		dbColumn = "phaste",
-		maxPoints = ParagonV2.MAX_POINTS.Haste,
+		maxPoints = Paragon.MAX_POINTS.Haste,
 		categoryId = 2,
 	},
 	{
@@ -131,7 +131,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Warrior_Sunder",
 		auraId = 100017,
 		dbColumn = "parmpen",
-		maxPoints = ParagonV2.MAX_POINTS.ArmorPen,
+		maxPoints = Paragon.MAX_POINTS.ArmorPen,
 		categoryId = 2,
 	},
 	{
@@ -141,7 +141,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MindSooth",
 		auraId = 100018,
 		dbColumn = "pspellpower",
-		maxPoints = ParagonV2.MAX_POINTS.SpellPower,
+		maxPoints = Paragon.MAX_POINTS.SpellPower,
 		categoryId = 2,
 	},
 	{
@@ -151,7 +151,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_ShadowPact",
 		auraId = 100019,
 		dbColumn = "pcrit",
-		maxPoints = ParagonV2.MAX_POINTS.Crit,
+		maxPoints = Paragon.MAX_POINTS.Crit,
 		categoryId = 2,
 	},
 	{
@@ -161,7 +161,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_FingerOfDeath",
 		auraId = 100022,
 		dbColumn = "phit",
-		maxPoints = ParagonV2.MAX_POINTS.Hit,
+		maxPoints = Paragon.MAX_POINTS.Hit,
 		categoryId = 2,
 	},
 
@@ -173,7 +173,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Defend",
 		auraId = 100023,
 		dbColumn = "pblock",
-		maxPoints = ParagonV2.MAX_POINTS.Block,
+		maxPoints = Paragon.MAX_POINTS.Block,
 		categoryId = 3,
 	},
 	{
@@ -183,7 +183,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_SealOfMight",
 		auraId = 100024,
 		dbColumn = "pexpertise",
-		maxPoints = ParagonV2.MAX_POINTS.Expertise,
+		maxPoints = Paragon.MAX_POINTS.Expertise,
 		categoryId = 3,
 	},
 	{
@@ -193,7 +193,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Parry",
 		auraId = 100025,
 		dbColumn = "pparry",
-		maxPoints = ParagonV2.MAX_POINTS.Parry,
+		maxPoints = Paragon.MAX_POINTS.Parry,
 		categoryId = 3,
 	},
 	{
@@ -203,7 +203,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Feint",
 		auraId = 100026,
 		dbColumn = "pdodge",
-		maxPoints = ParagonV2.MAX_POINTS.Dodge,
+		maxPoints = Paragon.MAX_POINTS.Dodge,
 		categoryId = 3,
 	},
 
@@ -215,7 +215,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Mount_RidingHorse",
 		auraId = 100020,
 		dbColumn = "pmspeed",
-		maxPoints = ParagonV2.MAX_POINTS.MountSpeed,
+		maxPoints = Paragon.MAX_POINTS.MountSpeed,
 		categoryId = 4,
 	},
 	{
@@ -225,7 +225,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_ManaRegenTotem",
 		auraId = 100021,
 		dbColumn = "pmreg",
-		maxPoints = ParagonV2.MAX_POINTS.ManaRegen,
+		maxPoints = Paragon.MAX_POINTS.ManaRegen,
 		categoryId = 4,
 	},
 
@@ -237,28 +237,28 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_LifeDrain02",
 		auraId = 100027,
 		dbColumn = "plifeleech",
-		maxPoints = ParagonV2.MAX_POINTS.LifeLeech,
+		maxPoints = Paragon.MAX_POINTS.LifeLeech,
 		categoryId = 2,
 	},
 }
 
 -- Build lookup tables
-ParagonV2.STAT_BY_ID = {}
-ParagonV2.STAT_BY_AURA = {}
-ParagonV2.STATS_BY_CATEGORY = {}
+Paragon.STAT_BY_ID = {}
+Paragon.STAT_BY_AURA = {}
+Paragon.STATS_BY_CATEGORY = {}
 
-for _, stat in ipairs(ParagonV2.STATS) do
-	ParagonV2.STAT_BY_ID[stat.id] = stat
-	ParagonV2.STAT_BY_AURA[stat.auraId] = stat
+for _, stat in ipairs(Paragon.STATS) do
+	Paragon.STAT_BY_ID[stat.id] = stat
+	Paragon.STAT_BY_AURA[stat.auraId] = stat
 
-	if not ParagonV2.STATS_BY_CATEGORY[stat.categoryId] then
-		ParagonV2.STATS_BY_CATEGORY[stat.categoryId] = {}
+	if not Paragon.STATS_BY_CATEGORY[stat.categoryId] then
+		Paragon.STATS_BY_CATEGORY[stat.categoryId] = {}
 	end
-	table.insert(ParagonV2.STATS_BY_CATEGORY[stat.categoryId], stat)
+	table.insert(Paragon.STATS_BY_CATEGORY[stat.categoryId], stat)
 end
 
 -- DB column order matching SELECT query
-ParagonV2.DB_COLUMN_ORDER = {
+Paragon.DB_COLUMN_ORDER = {
 	"pstrength", "pintellect", "pagility", "pspirit", "pstamina",
 	"phaste", "parmpen", "pspellpower", "pcrit", "pmspeed",
 	"pmreg", "phit", "pblock", "pexpertise", "pparry", "pdodge",
@@ -266,25 +266,25 @@ ParagonV2.DB_COLUMN_ORDER = {
 }
 
 -- Map DB column to stat ID
-ParagonV2.COLUMN_TO_STAT_ID = {}
-for _, stat in ipairs(ParagonV2.STATS) do
-	ParagonV2.COLUMN_TO_STAT_ID[stat.dbColumn] = stat.id
+Paragon.COLUMN_TO_STAT_ID = {}
+for _, stat in ipairs(Paragon.STATS) do
+	Paragon.COLUMN_TO_STAT_ID[stat.dbColumn] = stat.id
 end
 
 --- Get current stat allocations for a character.
 -- @param characterID number
 -- @return table mapping stat ID -> allocated points
-function ParagonV2.GetAllocations(characterID)
+function Paragon.GetAllocations(characterID)
 	local allocations = {}
-	for _, stat in ipairs(ParagonV2.STATS) do
+	for _, stat in ipairs(Paragon.STATS) do
 		allocations[stat.id] = 0
 	end
 
-	local columns = table.concat(ParagonV2.DB_COLUMN_ORDER, ", ")
+	local columns = table.concat(Paragon.DB_COLUMN_ORDER, ", ")
 	local query = CharDBQuery("SELECT " .. columns .. " FROM character_paragon_points WHERE characterID = " .. characterID)
 	if query then
-		for i, colName in ipairs(ParagonV2.DB_COLUMN_ORDER) do
-			local statId = ParagonV2.COLUMN_TO_STAT_ID[colName]
+		for i, colName in ipairs(Paragon.DB_COLUMN_ORDER) do
+			local statId = Paragon.COLUMN_TO_STAT_ID[colName]
 			if statId then
 				allocations[statId] = query:GetInt32(i - 1)
 			end
@@ -297,21 +297,21 @@ end
 --- Get the number of available (unspent) Paragon Points for a player.
 -- @param player Player object
 -- @return number
-function ParagonV2.GetAvailablePoints(player)
-	return player:GetItemCount(ParagonV2.CURRENCY_ITEM_ID)
+function Paragon.GetAvailablePoints(player)
+	return player:GetItemCount(Paragon.CURRENCY_ITEM_ID)
 end
 
 --- Update a single stat allocation in the DB.
 -- @param characterID number
 -- @param dbColumn string
 -- @param newValue number
-function ParagonV2.UpdateAllocation(characterID, dbColumn, newValue)
+function Paragon.UpdateAllocation(characterID, dbColumn, newValue)
 	CharDBExecute("UPDATE character_paragon_points SET " .. dbColumn .. " = " .. newValue .. " WHERE characterID = " .. characterID)
 end
 
 --- Race/gender-specific "not enough money" sound effects.
 -- Index: [raceId][gender] where gender 0=male, 1=female.
-ParagonV2.SOUND_EFFECTS = {
+Paragon.SOUND_EFFECTS = {
 	[1]  = { [0] = 1838,  [1] = 2032  }, -- Human
 	[2]  = { [0] = 2262,  [1] = 2370  }, -- Orc
 	[3]  = { [0] = 2502,  [1] = 2590  }, -- Dwarf
@@ -328,11 +328,11 @@ ParagonV2.SOUND_EFFECTS = {
 --- Get the sound effect ID for a player's "not enough points" feedback.
 -- @param player Player object
 -- @return number sound ID
-function ParagonV2.GetSoundEffect(player)
+function Paragon.GetSoundEffect(player)
 	local race = player:GetRace()
 	local gender = player:GetGender()
-	if ParagonV2.SOUND_EFFECTS[race] and ParagonV2.SOUND_EFFECTS[race][gender] then
-		return ParagonV2.SOUND_EFFECTS[race][gender]
+	if Paragon.SOUND_EFFECTS[race] and Paragon.SOUND_EFFECTS[race][gender] then
+		return Paragon.SOUND_EFFECTS[race][gender]
 	end
 	return 1838 -- Default: Human Male
 end
