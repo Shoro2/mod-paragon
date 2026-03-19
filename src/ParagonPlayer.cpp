@@ -30,6 +30,15 @@ static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
 static float    conf_LifeLeechPct     = 0.5f; // % heal per stack
 
+// Per-stat max points (configurable, default 255)
+static uint32 conf_MaxStats[STAT_COUNT] = {
+    255, 255, 255, 255, 255, // Str, Int, Agi, Spi, Sta
+    255, 255, 255, 255,       // Haste, ArmorPen, SpellPower, Crit
+    255, 255,                 // MountSpeed, ManaRegen
+    255, 255, 255, 255, 255,  // Hit, Block, Expertise, Parry, Dodge
+    255,                      // Life Leech
+};
+
 // Stat aura IDs (configurable, defaults match Lua system)
 static uint32 conf_AuraIds[STAT_COUNT] = {
     100001, // Strength (unified with Lua)
@@ -92,9 +101,14 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
     {
         if (statValues[i] > 0)
         {
+            uint32 clamped = statValues[i];
+            if (conf_MaxStats[i] > 0
+                && clamped > conf_MaxStats[i])
+                clamped = conf_MaxStats[i];
+
             player->AddAura(conf_AuraIds[i], player);
             if (Aura* aura = player->GetAura(conf_AuraIds[i]))
-                aura->SetStackAmount(statValues[i]);
+                aura->SetStackAmount(clamped);
         }
     }
 }
@@ -514,6 +528,42 @@ public:
             "Paragon.IdLifeLeech", 100027);
         conf_LifeLeechPct = sConfigMgr->GetOption<float>(
             "Paragon.LifeLeechPct", 0.5f);
+
+        // Per-stat max points
+        conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxStr", 255);
+        conf_MaxStats[1]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxInt", 255);
+        conf_MaxStats[2]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxAgi", 255);
+        conf_MaxStats[3]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxSpi", 255);
+        conf_MaxStats[4]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxSta", 255);
+        conf_MaxStats[5]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxHaste", 255);
+        conf_MaxStats[6]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxArmorPen", 255);
+        conf_MaxStats[7]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxSpellPower", 255);
+        conf_MaxStats[8]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxCrit", 255);
+        conf_MaxStats[9]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxMountSpeed", 255);
+        conf_MaxStats[10] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxManaRegen", 255);
+        conf_MaxStats[11] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxHit", 255);
+        conf_MaxStats[12] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxBlock", 255);
+        conf_MaxStats[13] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxExpertise", 255);
+        conf_MaxStats[14] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxParry", 255);
+        conf_MaxStats[15] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxDodge", 255);
+        conf_MaxStats[16] = sConfigMgr->GetOption<uint32>(
+            "Paragon.MaxLifeLeech", 255);
     }
 };
 

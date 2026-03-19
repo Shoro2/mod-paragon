@@ -13,6 +13,27 @@ ParagonV2.CURRENCY_ITEM_ID = 920920
 ParagonV2.CURRENCY_NAME = "Paragon Points"
 ParagonV2.CURRENCY_ICON = "Interface/Icons/INV_Misc_Gem_Bloodstone_01"
 
+-- Max points per stat (must match mod_paragon.conf Paragon.Max* values)
+ParagonV2.MAX_POINTS = {
+	Strength       = 255,
+	Intellect      = 255,
+	Agility        = 255,
+	Spirit         = 255,
+	Stamina        = 255,
+	Haste          = 255,
+	ArmorPen       = 255,
+	SpellPower     = 255,
+	Crit           = 255,
+	Hit            = 255,
+	Block          = 255,
+	Expertise      = 255,
+	Parry          = 255,
+	Dodge          = 255,
+	MountSpeed     = 255,
+	ManaRegen      = 255,
+	LifeLeech      = 255,
+}
+
 -- Categories
 ParagonV2.CATEGORIES = {
 	{
@@ -48,7 +69,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_FistOfJustice",
 		auraId = 100001,
 		dbColumn = "pstrength",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Strength,
 		categoryId = 1,
 	},
 	{
@@ -58,7 +79,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MagicalSentry",
 		auraId = 100002,
 		dbColumn = "pintellect",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Intellect,
 		categoryId = 1,
 	},
 	{
@@ -68,7 +89,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Eviscerate",
 		auraId = 100003,
 		dbColumn = "pagility",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Agility,
 		categoryId = 1,
 	},
 	{
@@ -78,7 +99,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_Requiem",
 		auraId = 100004,
 		dbColumn = "pspirit",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Spirit,
 		categoryId = 1,
 	},
 	{
@@ -88,7 +109,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_WordFortitude",
 		auraId = 100005,
 		dbColumn = "pstamina",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Stamina,
 		categoryId = 1,
 	},
 
@@ -100,7 +121,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_Bloodlust",
 		auraId = 100016,
 		dbColumn = "phaste",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Haste,
 		categoryId = 2,
 	},
 	{
@@ -110,7 +131,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Warrior_Sunder",
 		auraId = 100017,
 		dbColumn = "parmpen",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.ArmorPen,
 		categoryId = 2,
 	},
 	{
@@ -120,7 +141,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_MindSooth",
 		auraId = 100018,
 		dbColumn = "pspellpower",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.SpellPower,
 		categoryId = 2,
 	},
 	{
@@ -130,7 +151,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_ShadowPact",
 		auraId = 100019,
 		dbColumn = "pcrit",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Crit,
 		categoryId = 2,
 	},
 	{
@@ -140,7 +161,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_FingerOfDeath",
 		auraId = 100022,
 		dbColumn = "phit",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Hit,
 		categoryId = 2,
 	},
 
@@ -152,7 +173,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Defend",
 		auraId = 100023,
 		dbColumn = "pblock",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Block,
 		categoryId = 3,
 	},
 	{
@@ -162,7 +183,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Holy_SealOfMight",
 		auraId = 100024,
 		dbColumn = "pexpertise",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Expertise,
 		categoryId = 3,
 	},
 	{
@@ -172,7 +193,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Parry",
 		auraId = 100025,
 		dbColumn = "pparry",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Parry,
 		categoryId = 3,
 	},
 	{
@@ -182,7 +203,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Rogue_Feint",
 		auraId = 100026,
 		dbColumn = "pdodge",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.Dodge,
 		categoryId = 3,
 	},
 
@@ -194,7 +215,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Ability_Mount_RidingHorse",
 		auraId = 100020,
 		dbColumn = "pmspeed",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.MountSpeed,
 		categoryId = 4,
 	},
 	{
@@ -204,7 +225,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Nature_ManaRegenTotem",
 		auraId = 100021,
 		dbColumn = "pmreg",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.ManaRegen,
 		categoryId = 4,
 	},
 
@@ -216,7 +237,7 @@ ParagonV2.STATS = {
 		icon = "Interface/Icons/Spell_Shadow_LifeDrain02",
 		auraId = 100027,
 		dbColumn = "plifeleech",
-		maxPoints = 255,
+		maxPoints = ParagonV2.MAX_POINTS.LifeLeech,
 		categoryId = 2,
 	},
 }
