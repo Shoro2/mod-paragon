@@ -64,6 +64,33 @@ Paragon.XPQuest             = 3
 Paragon.XPPartyReduce = 0
 
 ########################################
+# Max Points per Stat (default: 255)
+########################################
+#
+#    Maximum number of points a player can allocate into each
+#    individual paragon stat.  Set to 0 for no limit (capped only
+#    by aura stack size).
+#
+
+Paragon.MaxStr        = 255
+Paragon.MaxInt        = 255
+Paragon.MaxAgi        = 255
+Paragon.MaxSpi        = 255
+Paragon.MaxSta        = 255
+Paragon.MaxHaste      = 255
+Paragon.MaxArmorPen   = 255
+Paragon.MaxSpellPower = 255
+Paragon.MaxCrit       = 255
+Paragon.MaxHit        = 255
+Paragon.MaxBlock      = 255
+Paragon.MaxExpertise  = 255
+Paragon.MaxParry      = 255
+Paragon.MaxDodge      = 255
+Paragon.MaxMountSpeed = 255
+Paragon.MaxManaRegen  = 255
+Paragon.MaxLifeLeech  = 255
+
+########################################
 # Life Leech
 ########################################
 
