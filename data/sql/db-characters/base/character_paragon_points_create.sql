@@ -1,4 +1,4 @@
-CREATE TABLE `character_paragon_points` (
+CREATE TABLE IF NOT EXISTS `character_paragon_points` (
   `characterID` int NOT NULL,
   `pstrength` int DEFAULT '0',
   `pintellect` int DEFAULT '0',
