@@ -1,4 +1,4 @@
-CREATE TABLE `character_paragon` (
+CREATE TABLE IF NOT EXISTS `character_paragon` (
   `accountID` int(10) unsigned NOT NULL,
   `level` int(11) DEFAULT NULL,
   `xp` int(11) DEFAULT NULL,
