@@ -8,6 +8,7 @@
 #include "Chat.h"
 #include "ParagonUtils.h"
 #include "CharacterDatabase.h"
+#include "Log.h"
 #include <mutex>
 #include <unordered_map>
 
@@ -108,6 +109,12 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
             player->AddAura(conf_AuraIds[i], player);
             if (Aura* aura = player->GetAura(conf_AuraIds[i]))
                 aura->SetStackAmount(clamped);
+            else
+                LOG_ERROR("module.paragon",
+                    "RefreshParagonAura: AddAura({}) failed for "
+                    "player {} (GUID {}), stat index {}, value {}",
+                    conf_AuraIds[i], player->GetName(),
+                    player->GetGUID().GetCounter(), i, clamped);
         }
     }
 }
