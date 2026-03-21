@@ -40,11 +40,10 @@ end
 function Handlers.RequestData(player)
 	local characterID = player:GetGUIDLow()
 	local categories, stats = BuildClientConfig()
-	local allocations = Paragon.GetAllocations(characterID)
-	local availablePoints = Paragon.GetAvailablePoints(player)
+	local allocations, unspent = Paragon.GetAllocations(characterID)
 
 	AIO.Handle(player, "PARAGON_CLIENT", "ReceiveData",
-		categories, stats, allocations, availablePoints)
+		categories, stats, allocations, unspent)
 end
 
 --- Allocate points into a stat.
@@ -62,7 +61,7 @@ function Handlers.AllocatePoint(player, statId, amount)
 	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
-	local allocations = Paragon.GetAllocations(characterID)
+	local allocations, unspent = Paragon.GetAllocations(characterID)
 	local current = allocations[statId] or 0
 
 	-- Check max points
@@ -72,8 +71,7 @@ function Handlers.AllocatePoint(player, statId, amount)
 	end
 
 	-- Check available points
-	local available = Paragon.GetAvailablePoints(player)
-	if available < 1 then
+	if unspent < 1 then
 		local soundId = Paragon.GetSoundEffect(player)
 		AIO.Handle(player, "PARAGON_CLIENT", "PlaySound", soundId)
 		return
@@ -82,10 +80,7 @@ function Handlers.AllocatePoint(player, statId, amount)
 	-- Clamp amount to what's actually possible
 	local maxCanAllocate = stat.maxPoints - current
 	if amount > maxCanAllocate then amount = maxCanAllocate end
-	if amount > available then amount = available end
-
-	-- Deduct Paragon Point items
-	player:RemoveItem(Paragon.CURRENCY_ITEM_ID, amount)
+	if amount > unspent then amount = unspent end
 
 	-- Apply aura
 	local newValue = current + amount
@@ -98,11 +93,12 @@ function Handlers.AllocatePoint(player, statId, amount)
 	end
 
 	-- Update DB (async) and send known values to client immediately
+	local newUnspent = unspent - amount
 	Paragon.UpdateAllocation(characterID, stat.dbColumn, newValue)
+	Paragon.UpdateUnspentPoints(characterID, newUnspent)
 	allocations[statId] = newValue
-	local availablePoints = Paragon.GetAvailablePoints(player)
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
-		allocations, availablePoints)
+		allocations, newUnspent)
 end
 
 --- Deallocate points from a stat.
@@ -120,7 +116,7 @@ function Handlers.DeallocatePoint(player, statId, amount)
 	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
-	local allocations = Paragon.GetAllocations(characterID)
+	local allocations, unspent = Paragon.GetAllocations(characterID)
 	local current = allocations[statId] or 0
 
 	-- Check if there's anything to remove
@@ -142,13 +138,11 @@ function Handlers.DeallocatePoint(player, statId, amount)
 		end
 	end
 
-	-- Refund Paragon Point items
-	player:AddItem(Paragon.CURRENCY_ITEM_ID, amount)
-
 	-- Update DB (async) and send known values to client immediately
+	local newUnspent = unspent + amount
 	Paragon.UpdateAllocation(characterID, stat.dbColumn, newValue)
+	Paragon.UpdateUnspentPoints(characterID, newUnspent)
 	allocations[statId] = newValue
-	local availablePoints = Paragon.GetAvailablePoints(player)
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
-		allocations, availablePoints)
+		allocations, newUnspent)
 end

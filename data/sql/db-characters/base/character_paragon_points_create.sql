@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS `character_paragon_points` (
   `characterID` int NOT NULL,
+  `unspent_points` int DEFAULT '0',
   `pstrength` int DEFAULT '0',
   `pintellect` int DEFAULT '0',
   `pagility` int DEFAULT '0',

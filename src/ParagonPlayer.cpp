@@ -12,7 +12,6 @@
 #include <unordered_map>
 
 constexpr uint32 STAT_COUNT = 17;
-constexpr uint32 PARAGON_POINT_ITEM = 920920;
 
 // Configuration values (loaded from mod_paragon.conf)
 static bool     conf_Enable       = true;
@@ -28,7 +27,7 @@ static uint32   conf_XPHCDungeonBoss  = 5;
 static uint32   conf_XPRaidBoss       = 10;
 static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
-static float    conf_LifeLeechPct     = 0.5f; // % heal per stack
+static float    conf_LifeLeechPct     = 0.1f; // % heal per stack
 
 // Per-stat max points (configurable, default 255)
 static uint32 conf_MaxStats[STAT_COUNT] = {
@@ -130,24 +129,29 @@ void ApplyParagonStatEffects(Player* player)
         totalAllocated += statValues[i];
     }
 
-    uint32 unspentPoints = player->GetItemCount(PARAGON_POINT_ITEM);
+    uint32 unspentPoints = (*qr)[STAT_COUNT].Get<uint32>();
     uint32 characterID = player->GetGUID().GetCounter();
     uint8 paragonLevel = player->GetAuraCount(conf_AuraLevel);
 
     if ((totalAllocated + unspentPoints) != paragonLevel * conf_PPL)
     {
+        uint32 totalPoints = paragonLevel * conf_PPL;
         CharacterDatabasePreparedStatement* resetStmt =
             CharacterDatabase.GetPreparedStatement(
                 CHAR_UPD_PARAGON_POINTS_RESET);
         resetStmt->SetData(0, characterID);
         CharacterDatabase.Execute(resetStmt);
+
+        CharacterDatabasePreparedStatement* setStmt =
+            CharacterDatabase.GetPreparedStatement(
+                CHAR_UPD_PARAGON_UNSPENT_SET);
+        setStmt->SetData(0, totalPoints);
+        setStmt->SetData(1, characterID);
+        CharacterDatabase.Execute(setStmt);
+
         ChatHandler(player->GetSession()).SendSysMessage(
             "There was an error loading your Paragon points, "
             "please reallocate them!");
-        player->DestroyItemCount(
-            PARAGON_POINT_ITEM,
-            player->GetItemCount(PARAGON_POINT_ITEM), true);
-        player->AddItem(PARAGON_POINT_ITEM, paragonLevel * conf_PPL);
 
         uint32 zeroStats[STAT_COUNT] = {};
         RefreshParagonAura(player, zeroStats);
@@ -431,7 +435,14 @@ void IncreaseParagonXP(Player* player, uint32 value)
            << newLevel << ".";
         ChatHandler(player->GetSession()).SendSysMessage(
             ss.str().c_str());
-        player->AddItem(PARAGON_POINT_ITEM, conf_PPL);
+
+        uint32 characterID = player->GetGUID().GetCounter();
+        CharacterDatabasePreparedStatement* ptsStmt =
+            CharacterDatabase.GetPreparedStatement(
+                CHAR_UPD_PARAGON_UNSPENT_ADD);
+        ptsStmt->SetData(0, conf_PPL);
+        ptsStmt->SetData(1, characterID);
+        CharacterDatabase.Execute(ptsStmt);
     }
     else
     {
@@ -527,7 +538,7 @@ public:
         conf_AuraIds[16] = sConfigMgr->GetOption<uint32>(
             "Paragon.IdLifeLeech", 100027);
         conf_LifeLeechPct = sConfigMgr->GetOption<float>(
-            "Paragon.LifeLeechPct", 0.5f);
+            "Paragon.LifeLeechPct", 0.1f);
 
         // Per-stat max points
         conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(

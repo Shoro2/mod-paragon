@@ -25,7 +25,7 @@ Both systems operate on the same DB table (`character_paragon_points`) and share
 
 - **XP Sources**: Creature kills (scaled by difficulty), daily/weekly quests (3 XP each)
 - **Level-up Formula**: Each level requires `100 * 1.1^(level-1)` XP (XP counts down to 0)
-- **Points per Level**: 5 points per level-up, delivered as item `920920` ("unspent points")
+- **Points per Level**: 5 points per level-up, stored as `unspent_points` in DB
 - **C++ Stats (17)**: Strength, Intellect, Agility, Spirit, Stamina, Haste, Armor Pen, Spell Power, Crit, Mount Speed, Mana Regen, Hit, Block, Expertise, Parry, Dodge, Life Leech
 - **Lua Stats (17)**: Same as C++ stats, all available in the Paragon UI
 - **Aura System**: Stats are applied as invisible spell auras with stacked amounts
@@ -128,16 +128,17 @@ A WoW addon UI built using WoW's frame API, sent to clients via AIO:
 
 ### `character_paragon_points` — Per-character stat allocation
 
-| Column        | Type     | Description             |
-|---------------|----------|-------------------------|
-| `characterID` | INT (PK) | Character GUID          |
-| `pstrength`   | INT      | Points in Strength      |
-| `pintellect`  | INT      | Points in Intellect     |
-| `pagility`    | INT      | Points in Agility       |
-| `pspirit`     | INT      | Points in Spirit        |
-| `pstamina`    | INT      | Points in Stamina       |
+| Column          | Type     | Description                    |
+|-----------------|----------|--------------------------------|
+| `characterID`   | INT (PK) | Character GUID                 |
+| `unspent_points`| INT      | Available unallocated points   |
+| `pstrength`     | INT      | Points in Strength             |
+| `pintellect`    | INT      | Points in Intellect            |
+| `pagility`      | INT      | Points in Agility              |
+| `pspirit`       | INT      | Points in Spirit               |
+| `pstamina`      | INT      | Points in Stamina              |
 
-The SQL schema defines all 17 stat columns matching the C++ code: `pstrength`, `pintellect`, `pagility`, `pspirit`, `pstamina`, `phaste`, `parmpen`, `pspellpower`, `pcrit`, `pmspeed`, `pmreg`, `phit`, `pblock`, `pexpertise`, `pparry`, `pdodge`, `plifeleech`.
+The SQL schema defines `unspent_points` plus all 17 stat columns matching the C++ code: `pstrength`, `pintellect`, `pagility`, `pspirit`, `pstamina`, `phaste`, `parmpen`, `pspellpower`, `pcrit`, `pmspeed`, `pmreg`, `phit`, `pblock`, `pexpertise`, `pparry`, `pdodge`, `plifeleech`.
 
 ## Custom Game Data Dependencies
 
@@ -145,7 +146,7 @@ These must exist in the game database/client for the module to function:
 
 - **Spell/Aura IDs (C++ and Lua, unified)**: 100000 (level counter), 100001-100005 (Str, Int, Agi, Spi, Sta), 100016-100026 (Haste through Dodge)
 - **All Aura IDs are configurable** via `mod_paragon.conf` (Paragon.IdStr, Paragon.IdInt, etc.)
-- **Item ID**: 920920 (unspent paragon points token)
+- **Unspent Points**: Stored in `character_paragon_points.unspent_points` (DB-based, no item)
 - **Gossip Text ID**: 197760 (NPC greeting text, must exist in `npc_text`)
 - **NPC Script Name**: `npc_paragon` (must be assigned to a creature via `creature_template.ScriptName`)
 
@@ -188,7 +189,7 @@ Lua code uses tab indentation and follows standard Eluna API conventions.
 7. ~~**Configuration Never Used**~~: FIXED — `ParagonConfig::OnAfterConfigLoad` reads 30+ options from `mod_paragon.conf`.
 8. **Empty Gossip Case** (`ParagonNPC.cpp:34-36`): Case 1 ("How does Abyssal Mastery work?") has no implementation.
 9. ~~**Eluna Declaration Without Implementation**~~: FIXED — Removed from `ParagonUtils.h`.
-10. **Forced Logout on Reset** (`ParagonNPC.cpp:54`): `LogoutPlayer(true)` after resetting points. Poor UX — should reapply auras instead.
+10. ~~**Forced Logout on Reset**~~: FIXED — Reset now reapplies auras via `ApplyParagonStatEffects()` instead of forcing logout.
 11. ~~**Health/Mana Exploit**~~: FIXED — `RefreshParagonAura()` no longer restores HP/mana.
 12. ~~**C++ and Lua Use Different Aura IDs for Strength**~~: FIXED — Both now use `100001`.
 
