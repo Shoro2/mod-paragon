@@ -95,5 +95,5 @@ Paragon.MaxLifeLeech  = 255
 ########################################
 
 # Percentage of damage healed per Life Leech stack.
-# Example: 0.5 = 0.5% per stack, so 100 stacks = 50% life leech
-Paragon.LifeLeechPct = 0.5
+# Example: 0.1 = 0.1% per stack, so 100 stacks = 10% life leech
+Paragon.LifeLeechPct = 0.1

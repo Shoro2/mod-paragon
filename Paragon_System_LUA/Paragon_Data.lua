@@ -232,7 +232,7 @@ Paragon.STATS = {
 	{
 		id = 17,
 		name = "Life Leech",
-		tooltip = "Heals you for a percentage of damage dealt.",
+		tooltip = "Heals you for 0.1% of damage dealt per point.",
 		icon = "Interface/Icons/Spell_Shadow_LifeDrain02",
 		auraId = 100027,
 		dbColumn = "plifeleech",

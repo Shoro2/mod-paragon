@@ -27,7 +27,7 @@ static uint32   conf_XPHCDungeonBoss  = 5;
 static uint32   conf_XPRaidBoss       = 10;
 static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
-static float    conf_LifeLeechPct     = 0.5f; // % heal per stack
+static float    conf_LifeLeechPct     = 0.1f; // % heal per stack
 
 // Per-stat max points (configurable, default 255)
 static uint32 conf_MaxStats[STAT_COUNT] = {
@@ -538,7 +538,7 @@ public:
         conf_AuraIds[16] = sConfigMgr->GetOption<uint32>(
             "Paragon.IdLifeLeech", 100027);
         conf_LifeLeechPct = sConfigMgr->GetOption<float>(
-            "Paragon.LifeLeechPct", 0.5f);
+            "Paragon.LifeLeechPct", 0.1f);
 
         // Per-stat max points
         conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(
