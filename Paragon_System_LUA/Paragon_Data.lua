@@ -8,8 +8,7 @@ local AIO = AIO or require("AIO")
 
 Paragon = Paragon or {}
 
--- Currency: Paragon Points item
-Paragon.CURRENCY_ITEM_ID = 920920
+-- Currency name/icon (stored in DB, no longer item-based)
 Paragon.CURRENCY_NAME = "Paragon Points"
 Paragon.CURRENCY_ICON = "Interface/Icons/INV_Misc_Gem_Bloodstone_01"
 
@@ -271,17 +270,18 @@ for _, stat in ipairs(Paragon.STATS) do
 	Paragon.COLUMN_TO_STAT_ID[stat.dbColumn] = stat.id
 end
 
---- Get current stat allocations for a character.
+--- Get current stat allocations and unspent points for a character.
 -- @param characterID number
--- @return table mapping stat ID -> allocated points
+-- @return table mapping stat ID -> allocated points, number unspent points
 function Paragon.GetAllocations(characterID)
 	local allocations = {}
+	local unspent = 0
 	for _, stat in ipairs(Paragon.STATS) do
 		allocations[stat.id] = 0
 	end
 
 	local columns = table.concat(Paragon.DB_COLUMN_ORDER, ", ")
-	local query = CharDBQuery("SELECT " .. columns .. " FROM character_paragon_points WHERE characterID = " .. characterID)
+	local query = CharDBQuery("SELECT " .. columns .. ", unspent_points FROM character_paragon_points WHERE characterID = " .. characterID)
 	if query then
 		for i, colName in ipairs(Paragon.DB_COLUMN_ORDER) do
 			local statId = Paragon.COLUMN_TO_STAT_ID[colName]
@@ -289,16 +289,28 @@ function Paragon.GetAllocations(characterID)
 				allocations[statId] = query:GetInt32(i - 1)
 			end
 		end
+		unspent = query:GetInt32(#Paragon.DB_COLUMN_ORDER)
 	end
 
-	return allocations
+	return allocations, unspent
 end
 
---- Get the number of available (unspent) Paragon Points for a player.
--- @param player Player object
+--- Get the number of available (unspent) Paragon Points for a character.
+-- @param characterID number
 -- @return number
-function Paragon.GetAvailablePoints(player)
-	return player:GetItemCount(Paragon.CURRENCY_ITEM_ID)
+function Paragon.GetAvailablePoints(characterID)
+	local query = CharDBQuery("SELECT unspent_points FROM character_paragon_points WHERE characterID = " .. characterID)
+	if query then
+		return query:GetInt32(0)
+	end
+	return 0
+end
+
+--- Update unspent points in the DB.
+-- @param characterID number
+-- @param newValue number
+function Paragon.UpdateUnspentPoints(characterID, newValue)
+	CharDBExecute("UPDATE character_paragon_points SET unspent_points = " .. newValue .. " WHERE characterID = " .. characterID)
 end
 
 --- Update a single stat allocation in the DB.

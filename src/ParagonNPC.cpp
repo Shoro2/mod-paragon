@@ -6,6 +6,7 @@
 #include "GossipDef.h"
 #include "ScriptedGossip.h"
 #include "CharacterDatabase.h"
+#include "ParagonUtils.h"
 
 uint32 gossip_text = 197760;
 
@@ -47,12 +48,18 @@ public:
         return true;
     }
 
-    void ResetParagonPoints(Player* player) {
+    void ResetParagonPoints(Player* player)
+    {
         uint32 characterID = player->GetGUID().GetCounter();
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_POINTS_RESET);
+        CharacterDatabasePreparedStatement* stmt =
+            CharacterDatabase.GetPreparedStatement(
+                CHAR_UPD_PARAGON_POINTS_RESET);
         stmt->SetData(0, characterID);
         CharacterDatabase.Execute(stmt);
-        player->GetSession()->LogoutPlayer(true);
+
+        ApplyParagonStatEffects(player);
+        ChatHandler(player->GetSession()).SendSysMessage(
+            "Your Paragon points have been reset.");
     }
 };
 
