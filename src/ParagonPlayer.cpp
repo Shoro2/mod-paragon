@@ -9,6 +9,7 @@
 #include "ParagonUtils.h"
 #include "CharacterDatabase.h"
 #include "Log.h"
+#include "SpellAuraEffects.h"
 #include <mutex>
 #include <unordered_map>
 
@@ -30,13 +31,15 @@ static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
 static float    conf_LifeLeechPct     = 0.1f; // % heal per stack
 
-// Per-stat max points (configurable, default 255)
+// Per-stat max points (configurable, default 666)
+// NOTE: WoW client renders aura stacks as uint8 (max 255 display),
+// but the actual stat effect supports higher values via ChangeAmount().
 static uint32 conf_MaxStats[STAT_COUNT] = {
-    255, 255, 255, 255, 255, // Str, Int, Agi, Spi, Sta
-    255, 255, 255, 255,       // Haste, ArmorPen, SpellPower, Crit
-    255, 255,                 // MountSpeed, ManaRegen
-    255, 255, 255, 255, 255,  // Hit, Block, Expertise, Parry, Dodge
-    255,                      // Life Leech
+    666, 666, 666, 666, 666, // Str, Int, Agi, Spi, Sta
+    666, 666, 666, 666,       // Haste, ArmorPen, SpellPower, Crit
+    666, 666,                 // MountSpeed, ManaRegen
+    666, 666, 666, 666, 666,  // Hit, Block, Expertise, Parry, Dodge
+    666,                      // Life Leech
 };
 
 // Stat aura IDs (configurable, defaults match Lua system)
@@ -108,7 +111,20 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
 
             player->AddAura(conf_AuraIds[i], player);
             if (Aura* aura = player->GetAura(conf_AuraIds[i]))
-                aura->SetStackAmount(clamped);
+            {
+                // Client renders aura stacks as uint8 (max 255).
+                // Cap display stacks, then override the actual
+                // stat effect amount via ChangeAmount().
+                uint8 displayStacks = static_cast<uint8>(
+                    std::min(clamped, static_cast<uint32>(255)));
+                aura->SetStackAmount(displayStacks);
+
+                if (clamped > 255)
+                {
+                    if (AuraEffect* eff = aura->GetEffect(EFFECT_0))
+                        eff->ChangeAmount(static_cast<int32>(clamped));
+                }
+            }
             else
                 LOG_ERROR("module.paragon",
                     "RefreshParagonAura: AddAura({}) failed for "
@@ -138,7 +154,26 @@ void ApplyParagonStatEffects(Player* player)
 
     uint32 unspentPoints = (*qr)[STAT_COUNT].Get<uint32>();
     uint32 characterID = player->GetGUID().GetCounter();
-    uint8 paragonLevel = player->GetAuraCount(conf_AuraLevel);
+
+    // Read paragon level from cache/DB — NOT from aura stack count,
+    // because aura stacks are uint8 and wrap at 256.
+    uint32 accountID = player->GetSession()->GetAccountId();
+    uint32 paragonLevel = 0;
+    ParagonCache cached;
+    if (CacheGet(accountID, cached))
+    {
+        paragonLevel = cached.level;
+    }
+    else
+    {
+        CharacterDatabasePreparedStatement* lvlStmt =
+            CharacterDatabase.GetPreparedStatement(
+                CHAR_SEL_PARAGON_LEVEL);
+        lvlStmt->SetData(0, accountID);
+        PreparedQueryResult lvlQr = CharacterDatabase.Query(lvlStmt);
+        if (lvlQr)
+            paragonLevel = (*lvlQr)[0].Get<uint32>();
+    }
 
     if ((totalAllocated + unspentPoints) != paragonLevel * conf_PPL)
     {
@@ -175,7 +210,8 @@ static void RestoreFromCache(Player* player, uint32 accountID)
     if (CacheGet(accountID, cached) && cached.level > 0)
     {
         player->AddAura(conf_AuraLevel, player);
-        player->SetAuraStack(conf_AuraLevel, player, cached.level);
+        player->SetAuraStack(conf_AuraLevel, player,
+            std::min(cached.level, static_cast<uint32>(255)));
         ApplyParagonStatEffects(player);
     }
 }
@@ -206,7 +242,8 @@ public:
             CacheSet(accountID, paragonLevel, paragonXP);
 
             player->AddAura(conf_AuraLevel, player);
-            player->SetAuraStack(conf_AuraLevel, player, paragonLevel);
+            player->SetAuraStack(conf_AuraLevel, player,
+                std::min(paragonLevel, static_cast<uint32>(255)));
 
             CharacterDatabasePreparedStatement* ptsStmt =
                 CharacterDatabase.GetPreparedStatement(
@@ -434,7 +471,8 @@ void IncreaseParagonXP(Player* player, uint32 value)
 
         CacheSet(accountID, newLevel, static_cast<uint32>(newXP));
 
-        player->SetAuraStack(conf_AuraLevel, player, newLevel);
+        player->SetAuraStack(conf_AuraLevel, player,
+            std::min(newLevel, static_cast<uint32>(255)));
 
         std::ostringstream ss;
         ss << "Congratulations " << player->GetName()
@@ -549,39 +587,39 @@ public:
 
         // Per-stat max points
         conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxStr", 255);
+            "Paragon.MaxStr", 666);
         conf_MaxStats[1]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxInt", 255);
+            "Paragon.MaxInt", 666);
         conf_MaxStats[2]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxAgi", 255);
+            "Paragon.MaxAgi", 666);
         conf_MaxStats[3]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxSpi", 255);
+            "Paragon.MaxSpi", 666);
         conf_MaxStats[4]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxSta", 255);
+            "Paragon.MaxSta", 666);
         conf_MaxStats[5]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxHaste", 255);
+            "Paragon.MaxHaste", 666);
         conf_MaxStats[6]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxArmorPen", 255);
+            "Paragon.MaxArmorPen", 666);
         conf_MaxStats[7]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxSpellPower", 255);
+            "Paragon.MaxSpellPower", 666);
         conf_MaxStats[8]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxCrit", 255);
+            "Paragon.MaxCrit", 666);
         conf_MaxStats[9]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxMountSpeed", 255);
+            "Paragon.MaxMountSpeed", 666);
         conf_MaxStats[10] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxManaRegen", 255);
+            "Paragon.MaxManaRegen", 666);
         conf_MaxStats[11] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxHit", 255);
+            "Paragon.MaxHit", 666);
         conf_MaxStats[12] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxBlock", 255);
+            "Paragon.MaxBlock", 666);
         conf_MaxStats[13] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxExpertise", 255);
+            "Paragon.MaxExpertise", 666);
         conf_MaxStats[14] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxParry", 255);
+            "Paragon.MaxParry", 666);
         conf_MaxStats[15] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxDodge", 255);
+            "Paragon.MaxDodge", 666);
         conf_MaxStats[16] = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxLifeLeech", 255);
+            "Paragon.MaxLifeLeech", 666);
     }
 };
 
@@ -607,12 +645,19 @@ public:
         if (!aura)
             return;
 
-        uint32 stacks = aura->GetStackAmount();
-        if (stacks == 0)
+        // Read actual effect amount (not uint8-capped stack count)
+        uint32 leechPoints = 0;
+        if (AuraEffect const* eff = aura->GetEffect(EFFECT_0))
+            leechPoints = static_cast<uint32>(
+                std::max(eff->GetAmount(), 0));
+        else
+            leechPoints = aura->GetStackAmount();
+
+        if (leechPoints == 0)
             return;
 
-        // heal = damage * stacks * pct / 100
-        float healPct = stacks * conf_LifeLeechPct;
+        // heal = damage * points * pct / 100
+        float healPct = leechPoints * conf_LifeLeechPct;
         uint32 healAmount =
             static_cast<uint32>(damage * healPct / 100.0f);
         if (healAmount == 0)
