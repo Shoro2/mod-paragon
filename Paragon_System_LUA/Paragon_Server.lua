@@ -8,6 +8,38 @@ local AIO = AIO or require("AIO")
 
 local Handlers = AIO.AddHandlers("PARAGON_SERVER", {})
 
+--- Apply big+small aura pair for a stat.
+-- Each big stack = 100 small stacks, staying within the 255-stack limit.
+-- @param player  Player object
+-- @param stat    Stat table (must have auraId and bigAuraId)
+-- @param value   Total allocated points (0 to remove)
+local function ApplyStatAuras(player, stat, value)
+	-- Always remove both auras first
+	player:RemoveAura(stat.auraId)
+	player:RemoveAura(stat.bigAuraId)
+
+	if value <= 0 then return end
+
+	local bigStacks  = math.floor(value / 100)
+	local smallStacks = value % 100
+
+	if bigStacks > 0 then
+		player:AddAura(stat.bigAuraId, player)
+		local aura = player:GetAura(stat.bigAuraId)
+		if aura then
+			aura:SetStackAmount(bigStacks)
+		end
+	end
+
+	if smallStacks > 0 then
+		player:AddAura(stat.auraId, player)
+		local aura = player:GetAura(stat.auraId)
+		if aura then
+			aura:SetStackAmount(smallStacks)
+		end
+	end
+end
+
 --- Build the serializable stats/categories config to send to the client.
 -- Strips server-only fields (dbColumn, auraId) from the data.
 local function BuildClientConfig()
@@ -82,16 +114,9 @@ function Handlers.AllocatePoint(player, statId, amount)
 	if amount > maxCanAllocate then amount = maxCanAllocate end
 	if amount > unspent then amount = unspent end
 
-	-- Apply aura (stack display capped at 255, C++ refresh
-	-- applies full amount via ChangeAmount on login/map change)
+	-- Apply big+small aura pair
 	local newValue = current + amount
-	if current == 0 then
-		player:AddAura(stat.auraId, player)
-	end
-	local aura = player:GetAura(stat.auraId)
-	if aura then
-		aura:SetStackAmount(math.min(newValue, 255))
-	end
+	ApplyStatAuras(player, stat, newValue)
 
 	-- Update DB (async) and send known values to client immediately
 	local newUnspent = unspent - amount
@@ -128,16 +153,9 @@ function Handlers.DeallocatePoint(player, statId, amount)
 	-- Clamp amount to current allocation
 	if amount > current then amount = current end
 
-	-- Remove aura stacks (capped at 255 for client display)
+	-- Apply big+small aura pair (or remove if zero)
 	local newValue = current - amount
-	if newValue == 0 then
-		player:RemoveAura(stat.auraId)
-	else
-		local aura = player:GetAura(stat.auraId)
-		if aura then
-			aura:SetStackAmount(math.min(newValue, 255))
-		end
-	end
+	ApplyStatAuras(player, stat, newValue)
 
 	-- Update DB (async) and send known values to client immediately
 	local newUnspent = unspent + amount
