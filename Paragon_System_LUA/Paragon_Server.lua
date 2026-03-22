@@ -82,14 +82,15 @@ function Handlers.AllocatePoint(player, statId, amount)
 	if amount > maxCanAllocate then amount = maxCanAllocate end
 	if amount > unspent then amount = unspent end
 
-	-- Apply aura
+	-- Apply aura (stack display capped at 255, C++ refresh
+	-- applies full amount via ChangeAmount on login/map change)
 	local newValue = current + amount
 	if current == 0 then
 		player:AddAura(stat.auraId, player)
 	end
 	local aura = player:GetAura(stat.auraId)
 	if aura then
-		aura:SetStackAmount(newValue)
+		aura:SetStackAmount(math.min(newValue, 255))
 	end
 
 	-- Update DB (async) and send known values to client immediately
@@ -127,14 +128,14 @@ function Handlers.DeallocatePoint(player, statId, amount)
 	-- Clamp amount to current allocation
 	if amount > current then amount = current end
 
-	-- Remove aura stacks
+	-- Remove aura stacks (capped at 255 for client display)
 	local newValue = current - amount
 	if newValue == 0 then
 		player:RemoveAura(stat.auraId)
 	else
 		local aura = player:GetAura(stat.auraId)
 		if aura then
-			aura:SetStackAmount(newValue)
+			aura:SetStackAmount(math.min(newValue, 255))
 		end
 	end
 
