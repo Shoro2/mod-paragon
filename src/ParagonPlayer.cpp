@@ -9,7 +9,6 @@
 #include "ParagonUtils.h"
 #include "CharacterDatabase.h"
 #include "Log.h"
-#include "SpellAuraEffects.h"
 #include <mutex>
 #include <unordered_map>
 
@@ -32,8 +31,7 @@ static bool     conf_XPPartyReduce    = false;
 static float    conf_LifeLeechPct     = 0.1f; // % heal per stack
 
 // Per-stat max points (configurable, default 666)
-// NOTE: WoW client renders aura stacks as uint8 (max 255 display),
-// but the actual stat effect supports higher values via ChangeAmount().
+// Stats above 100 use big+small spell pairs to bypass the 255-stack limit.
 static uint32 conf_MaxStats[STAT_COUNT] = {
     666, 666, 666, 666, 666, // Str, Int, Agi, Spi, Sta
     666, 666, 666, 666,       // Haste, ArmorPen, SpellPower, Crit
@@ -61,6 +59,17 @@ static uint32 conf_AuraIds[STAT_COUNT] = {
     100025, // Parry
     100026, // Dodge
     100027, // Life Leech
+};
+
+// Big-stat aura IDs: each stack = 100 small stacks.
+// Used when allocated points > 100 to stay within the 255-stack limit.
+// ID scheme: small_aura_id + 200 (100001 -> 100201, etc.)
+static uint32 conf_BigAuraIds[STAT_COUNT] = {
+    100201, 100202, 100203, 100204, 100205,
+    100216, 100217, 100218, 100219,
+    100220, 100221,
+    100222, 100223, 100224, 100225, 100226,
+    100227,
 };
 
 // In-memory cache for paragon level/XP per account
@@ -97,40 +106,56 @@ static void CacheRemove(uint32 accountId)
 
 void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
 {
-    for (uint32 i = 0; i < STAT_COUNT; ++i)
-        player->RemoveAura(conf_AuraIds[i]);
-
+    // Remove all stat auras (both small and big)
     for (uint32 i = 0; i < STAT_COUNT; ++i)
     {
-        if (statValues[i] > 0)
+        player->RemoveAura(conf_AuraIds[i]);
+        player->RemoveAura(conf_BigAuraIds[i]);
+    }
+
+    // Apply stats using big+small spell pairs.
+    // Each big stack = 100 small stacks.  Both stay within 255.
+    for (uint32 i = 0; i < STAT_COUNT; ++i)
+    {
+        if (statValues[i] == 0)
+            continue;
+
+        uint32 clamped = statValues[i];
+        if (conf_MaxStats[i] > 0
+            && clamped > conf_MaxStats[i])
+            clamped = conf_MaxStats[i];
+
+        uint32 bigStacks  = clamped / 100;
+        uint32 smallStacks = clamped % 100;
+
+        // Apply big aura (100x value per stack)
+        if (bigStacks > 0)
         {
-            uint32 clamped = statValues[i];
-            if (conf_MaxStats[i] > 0
-                && clamped > conf_MaxStats[i])
-                clamped = conf_MaxStats[i];
-
-            player->AddAura(conf_AuraIds[i], player);
-            if (Aura* aura = player->GetAura(conf_AuraIds[i]))
-            {
-                // Client renders aura stacks as uint8 (max 255).
-                // Cap display stacks, then override the actual
-                // stat effect amount via ChangeAmount().
-                uint8 displayStacks = static_cast<uint8>(
-                    std::min(clamped, static_cast<uint32>(255)));
-                aura->SetStackAmount(displayStacks);
-
-                if (clamped > 255)
-                {
-                    if (AuraEffect* eff = aura->GetEffect(EFFECT_0))
-                        eff->ChangeAmount(static_cast<int32>(clamped));
-                }
-            }
+            player->AddAura(conf_BigAuraIds[i], player);
+            if (Aura* aura = player->GetAura(conf_BigAuraIds[i]))
+                aura->SetStackAmount(
+                    static_cast<uint8>(bigStacks));
             else
                 LOG_ERROR("module.paragon",
                     "RefreshParagonAura: AddAura({}) failed for "
-                    "player {} (GUID {}), stat index {}, value {}",
+                    "player {} (GUID {}), stat {}, big stacks {}",
+                    conf_BigAuraIds[i], player->GetName(),
+                    player->GetGUID().GetCounter(), i, bigStacks);
+        }
+
+        // Apply small aura (original value per stack)
+        if (smallStacks > 0)
+        {
+            player->AddAura(conf_AuraIds[i], player);
+            if (Aura* aura = player->GetAura(conf_AuraIds[i]))
+                aura->SetStackAmount(
+                    static_cast<uint8>(smallStacks));
+            else
+                LOG_ERROR("module.paragon",
+                    "RefreshParagonAura: AddAura({}) failed for "
+                    "player {} (GUID {}), stat {}, small stacks {}",
                     conf_AuraIds[i], player->GetName(),
-                    player->GetGUID().GetCounter(), i, clamped);
+                    player->GetGUID().GetCounter(), i, smallStacks);
         }
     }
 }
@@ -585,6 +610,43 @@ public:
         conf_LifeLeechPct = sConfigMgr->GetOption<float>(
             "Paragon.LifeLeechPct", 0.1f);
 
+        // Big-stat aura IDs (each stack = 100 small stacks)
+        // Default: small aura ID + 200
+        conf_BigAuraIds[0]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigStr", 100201);
+        conf_BigAuraIds[1]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigInt", 100202);
+        conf_BigAuraIds[2]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigAgi", 100203);
+        conf_BigAuraIds[3]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigSpi", 100204);
+        conf_BigAuraIds[4]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigSta", 100205);
+        conf_BigAuraIds[5]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigHaste", 100216);
+        conf_BigAuraIds[6]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigArmorPen", 100217);
+        conf_BigAuraIds[7]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigSpellPower", 100218);
+        conf_BigAuraIds[8]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigCrit", 100219);
+        conf_BigAuraIds[9]  = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigMountSpeed", 100220);
+        conf_BigAuraIds[10] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigManaRegen", 100221);
+        conf_BigAuraIds[11] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigHit", 100222);
+        conf_BigAuraIds[12] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigBlock", 100223);
+        conf_BigAuraIds[13] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigExpertise", 100224);
+        conf_BigAuraIds[14] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigParry", 100225);
+        conf_BigAuraIds[15] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigDodge", 100226);
+        conf_BigAuraIds[16] = sConfigMgr->GetOption<uint32>(
+            "Paragon.IdBigLifeLeech", 100227);
+
         // Per-stat max points
         conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxStr", 666);
@@ -640,18 +702,12 @@ public:
         if (!player)
             return;
 
-        uint32 leechAura = conf_AuraIds[16]; // Life Leech
-        Aura* aura = player->GetAura(leechAura);
-        if (!aura)
-            return;
-
-        // Read actual effect amount (not uint8-capped stack count)
+        // Read life leech stacks from both big and small auras
         uint32 leechPoints = 0;
-        if (AuraEffect const* eff = aura->GetEffect(EFFECT_0))
-            leechPoints = static_cast<uint32>(
-                std::max(eff->GetAmount(), 0));
-        else
-            leechPoints = aura->GetStackAmount();
+        if (Aura* bigAura = player->GetAura(conf_BigAuraIds[16]))
+            leechPoints += bigAura->GetStackAmount() * 100;
+        if (Aura* smallAura = player->GetAura(conf_AuraIds[16]))
+            leechPoints += smallAura->GetStackAmount();
 
         if (leechPoints == 0)
             return;
