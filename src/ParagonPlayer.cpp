@@ -700,7 +700,13 @@ public:
 
         Player* player = attacker->ToPlayer();
         if (!player)
-            return;
+        {
+            // Check if attacker is a pet/guardian owned by a player
+            if (Unit* owner = attacker->GetOwner())
+                player = owner->ToPlayer();
+            if (!player)
+                return;
+        }
 
         // Read life leech stacks from both big and small auras
         uint32 leechPoints = 0;
