@@ -36,6 +36,33 @@ Paragon.IdDodge     = 100026
 Paragon.IdLifeLeech = 100027
 
 ########################################
+# Big-Stat Aura IDs (each stack = 100x)
+########################################
+#
+#    Used when allocated points > 100 to stay within the 255-stack
+#    aura limit.  Each big aura stack represents 100 small stacks.
+#    Default: small aura ID + 200
+#
+
+Paragon.IdBigStr        = 100201
+Paragon.IdBigInt        = 100202
+Paragon.IdBigAgi        = 100203
+Paragon.IdBigSpi        = 100204
+Paragon.IdBigSta        = 100205
+Paragon.IdBigHaste      = 100216
+Paragon.IdBigArmorPen   = 100217
+Paragon.IdBigSpellPower = 100218
+Paragon.IdBigCrit       = 100219
+Paragon.IdBigMountSpeed = 100220
+Paragon.IdBigManaRegen  = 100221
+Paragon.IdBigHit        = 100222
+Paragon.IdBigBlock      = 100223
+Paragon.IdBigExpertise  = 100224
+Paragon.IdBigParry      = 100225
+Paragon.IdBigDodge      = 100226
+Paragon.IdBigLifeLeech  = 100227
+
+########################################
 # Points per Level
 ########################################
 
