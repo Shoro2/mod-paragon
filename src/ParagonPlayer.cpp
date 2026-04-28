@@ -140,7 +140,7 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
                     "RefreshParagonAura: AddAura({}) failed for "
                     "player {} (GUID {}), stat {}, big stacks {}",
                     conf_BigAuraIds[i], player->GetName(),
-                    player->GetGUID().GetCounter(), i, bigStacks);
+                    player->GetGUID().ToString(), i, bigStacks);
         }
 
         // Apply small aura (original value per stack)
@@ -155,7 +155,7 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
                     "RefreshParagonAura: AddAura({}) failed for "
                     "player {} (GUID {}), stat {}, small stacks {}",
                     conf_AuraIds[i], player->GetName(),
-                    player->GetGUID().GetCounter(), i, smallStacks);
+                    player->GetGUID().ToString(), i, smallStacks);
         }
     }
 }
@@ -416,7 +416,6 @@ public:
 
         if (Group* group = killer->GetGroup())
         {
-            uint32 memberCount = 0;
             Group::MemberSlotList const& members =
                 group->GetMemberSlots();
             for (auto const& slot : members)
@@ -424,10 +423,7 @@ public:
                 Player* p = ObjectAccessor::GetPlayer(
                     killer->GetMap(), slot.guid);
                 if (p)
-                {
                     IncreaseParagonXP(p, xpAmount);
-                    ++memberCount;
-                }
             }
         }
         else
@@ -692,14 +688,26 @@ public:
         "ParagonLifeLeech", true,
         { UNITHOOK_ON_DAMAGE }) { }
 
-    void OnDamage(Unit* attacker, Unit* /*victim*/,
+    void OnDamage(Unit* attacker, Unit* victim,
                   uint32& damage) override
     {
-        if (!conf_Enable || !attacker || damage == 0)
+        if (!conf_Enable || !attacker || !victim || damage == 0)
             return;
 
-        Player* player = attacker->ToPlayer();
+        // Resolve to the player owner so pet/totem/mind-control
+        // damage also triggers leech. Without this, caster specs
+        // whose main damage comes from a pet (Demonology Warlock,
+        // Frost Mage, BM Hunter) or totems (every Shaman spec) get
+        // no leech at all.
+        Player* player =
+            attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
         if (!player)
+            return;
+
+        // Skip self/friendly-controlled damage (fall, environmental,
+        // own spell splash) — never heal off your own HP loss.
+        if (victim == player ||
+            victim->GetCharmerOrOwnerPlayerOrPlayerItself() == player)
             return;
 
         // Read life leech stacks from both big and small auras
