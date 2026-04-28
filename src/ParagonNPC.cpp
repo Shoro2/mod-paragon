@@ -22,7 +22,6 @@ public:
         AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "How does the Abyssal Mastery work?", GOSSIP_SENDER_MAIN, 1);
         AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Reset my allocated points.", GOSSIP_SENDER_MAIN, 2);
 
-
         SendGossipMenuFor(player, gossip_text, creature->GetGUID());
         return true;
     }
@@ -42,8 +41,6 @@ public:
             break;
         }
         SendGossipMenuFor(player, gossip_text, creature->GetGUID());
-
-
 
         return true;
     }

@@ -140,7 +140,7 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
                     "RefreshParagonAura: AddAura({}) failed for "
                     "player {} (GUID {}), stat {}, big stacks {}",
                     conf_BigAuraIds[i], player->GetName(),
-                    player->GetGUID().GetCounter(), i, bigStacks);
+                    player->GetGUID().ToString(), i, bigStacks);
         }
 
         // Apply small aura (original value per stack)
@@ -155,7 +155,7 @@ void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
                     "RefreshParagonAura: AddAura({}) failed for "
                     "player {} (GUID {}), stat {}, small stacks {}",
                     conf_AuraIds[i], player->GetName(),
-                    player->GetGUID().GetCounter(), i, smallStacks);
+                    player->GetGUID().ToString(), i, smallStacks);
         }
     }
 }
