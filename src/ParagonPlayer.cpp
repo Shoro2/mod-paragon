@@ -416,7 +416,6 @@ public:
 
         if (Group* group = killer->GetGroup())
         {
-            uint32 memberCount = 0;
             Group::MemberSlotList const& members =
                 group->GetMemberSlots();
             for (auto const& slot : members)
@@ -424,10 +423,7 @@ public:
                 Player* p = ObjectAccessor::GetPlayer(
                     killer->GetMap(), slot.guid);
                 if (p)
-                {
                     IncreaseParagonXP(p, xpAmount);
-                    ++memberCount;
-                }
             }
         }
         else
