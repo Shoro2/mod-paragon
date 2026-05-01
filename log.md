@@ -4,6 +4,9 @@
 
 ## 2026
 
+- 2026-05-01 — fix(Paragon/C++): soft-recover paragon mismatch instead of destructive reset ([8222889](https://github.com/Shoro2/mod-paragon/commit/822288970327deb89a200746d225afc28675e6cf)) — M2 Teil 3/3: `ApplyParagonStatEffects()` zeroed Stats nicht mehr; nur `unspent_points` wird bei Mismatch korrigiert.
+- 2026-05-01 — fix(Paragon/Lua): use atomic update in Allocate/DeallocatePoint ([f856c7b](https://github.com/Shoro2/mod-paragon/commit/f856c7b472c4bfae9996e4d8f1058d775e86ad9b)) — M2 Teil 2/3: zwei async-Updates durch einen synchronen ersetzt.
+- 2026-05-01 — fix(Paragon/Lua): add atomic UpdateAllocationAndUnspent ([8d8ec2d](https://github.com/Shoro2/mod-paragon/commit/8d8ec2d2876d87a24009577fa83d566a37fcf198)) — M2 Teil 1/3: neue `Paragon.UpdateAllocationAndUnspent`-Funktion (synchroner CharDBQuery für Stat+Unspent in einem UPDATE).
 - 2026-04-28 — fix(Core): trigger Life Leech for caster pets, totems and charm damage ([eb7fea3](https://github.com/Shoro2/mod-paragon/commit/eb7fea35d4f56faf4862f406220fe215c15a5dd8)) — Resolve via `GetCharmerOrOwnerPlayerOrPlayerItself()`; victim-owner-check gegen Self-Heal aus Selbstschaden.
 - 2026-04-28 — style(Core): fix codestyle violations blocking CI ([ad6e15d](https://github.com/Shoro2/mod-paragon/commit/ad6e15dde249c4726b742c4968d77b878b0b6a03)) — `GetCounter()` → `ToString()` in Logs, doppelte Leerzeilen entfernt.
 - 2026-04-28 — fix(Core): resolve pre-existing -Werror build failures ([ea808d2](https://github.com/Shoro2/mod-paragon/commit/ea808d22f7005dea38c710bd366dc9787e882875)) — `memberCount` ungenutzt entfernt; `OnGossipSelect override` Spezifizierer ergänzt.
