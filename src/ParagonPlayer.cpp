@@ -202,27 +202,41 @@ void ApplyParagonStatEffects(Player* player)
 
     if ((totalAllocated + unspentPoints) != paragonLevel * conf_PPL)
     {
+        // Soft-recovery: previously this branch wiped every stat
+        // allocation and forced the player to reallocate. With Lua
+        // now writing stat-column + unspent_points atomically via
+        // a single synchronous CharDBQuery, a transient mismatch on
+        // map change can no longer happen. Defensive path: only
+        // re-derive unspent_points; keep stats untouched so we
+        // never destroy real allocations on a spurious mismatch.
         uint32 totalPoints = paragonLevel * conf_PPL;
-        CharacterDatabasePreparedStatement* resetStmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_UPD_PARAGON_POINTS_RESET);
-        resetStmt->SetData(0, characterID);
-        CharacterDatabase.Execute(resetStmt);
+        int64 expectedUnspent =
+            static_cast<int64>(totalPoints) -
+            static_cast<int64>(totalAllocated);
+        if (expectedUnspent < 0)
+            expectedUnspent = 0;
 
-        CharacterDatabasePreparedStatement* setStmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_UPD_PARAGON_UNSPENT_SET);
-        setStmt->SetData(0, totalPoints);
-        setStmt->SetData(1, characterID);
-        CharacterDatabase.Execute(setStmt);
+        if (static_cast<uint32>(expectedUnspent) != unspentPoints)
+        {
+            LOG_WARN("module.paragon",
+                "ApplyParagonStatEffects: integrity mismatch for "
+                "player {} (GUID {}, level={}, total_alloc={}, "
+                "unspent={}, expected_unspent={}). Soft-recover "
+                "unspent without resetting stats.",
+                player->GetName(),
+                player->GetGUID().ToString(),
+                paragonLevel, totalAllocated, unspentPoints,
+                static_cast<uint32>(expectedUnspent));
 
-        ChatHandler(player->GetSession()).SendSysMessage(
-            "There was an error loading your Paragon points, "
-            "please reallocate them!");
-
-        uint32 zeroStats[STAT_COUNT] = {};
-        RefreshParagonAura(player, zeroStats);
-        return;
+            CharacterDatabasePreparedStatement* setStmt =
+                CharacterDatabase.GetPreparedStatement(
+                    CHAR_UPD_PARAGON_UNSPENT_SET);
+            setStmt->SetData(0,
+                static_cast<uint32>(expectedUnspent));
+            setStmt->SetData(1, characterID);
+            CharacterDatabase.Execute(setStmt);
+        }
+        // No early return: still apply auras for the (kept) stats.
     }
 
     RefreshParagonAura(player, statValues);
