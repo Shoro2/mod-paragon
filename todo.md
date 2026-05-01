@@ -4,13 +4,8 @@
 
 ## Sicherheit
 
-- [ ] **(mittel)** SQL-Injection-Risiko in Lua-Layer: `Paragon_Server.lua` nutzt `CharDBExecute` mit String-Concat (Eluna ohne Prepared Statements). Alle Handler-Args explizit validieren — speziell `statId` (Integer-Whitelist 1..17), `amount` (positive Integer mit Cap).
+- [ ] **(mittel)** SQL-Injection-Risiko in Lua-Layer: `Paragon_Server.lua` nutzt `CharDBExecute` mit String-Concat (Eluna ohne Prepared Statements). Alle Handler-Args explizit validieren — speziell `statId` (Integer-Whitelist 1..17), `amount` (positive Integer mit Cap). Validation-Lib steht ab 2026-05 in `share-public/AIO_Server/Dep_Validation/validation.lua` zur Verfügung.
 - [ ] **(mittel)** Race-Condition C++ ↔ Lua: beide Layer schreiben `character_paragon_points`. Bei sehr schneller Allokation theoretisch möglich. Optionen: Lua-Allocations über Handler an C++ delegieren (single source of truth), oder Row-Lock per Transaction.
-
-## Gameplay-Verbesserungen
-
-- [ ] **(mittel)** Anti-Farm-Maßnahmen für XP-Quellen: kein Cooldown auf wiederholte Kills derselben Mob-Entry, keine Diminishing Returns. Vorschlag: per-Account `lastKillTimestampPerEntry` Cache mit z.B. 60 s Mindestabstand.
-- [ ] **(niedrig)** Reset-Cooldown / -Kosten: aktuell ist der Reset über NPC kostenlos und beliebig oft — sinnvoll wäre Gold-Kosten oder Cooldown.
 
 ## Doku
 
