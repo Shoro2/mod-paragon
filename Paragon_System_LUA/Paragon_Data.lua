@@ -339,8 +339,24 @@ function Paragon.UpdateAllocation(characterID, dbColumn, newValue)
 	CharDBExecute("UPDATE character_paragon_points SET " .. dbColumn .. " = " .. newValue .. " WHERE characterID = " .. characterID)
 end
 
+--- Atomic update: stat allocation + unspent_points in a single UPDATE.
+-- Uses synchronous CharDBQuery so the C++ side (ApplyParagonStatEffects on
+-- map change) sees a consistent (totalAllocated + unspent) immediately,
+-- avoiding the integrity-mismatch reset path. Prefer this over the
+-- two-step UpdateAllocation + UpdateUnspentPoints pair.
+-- @param characterID number
+-- @param dbColumn    string
+-- @param newValue    number  new value of the stat column
+-- @param newUnspent  number  new unspent_points value
+function Paragon.UpdateAllocationAndUnspent(characterID, dbColumn, newValue, newUnspent)
+	CharDBQuery("UPDATE character_paragon_points SET "
+		.. dbColumn .. " = " .. newValue
+		.. ", unspent_points = " .. newUnspent
+		.. " WHERE characterID = " .. characterID)
+end
+
 --- Race/gender-specific "not enough money" sound effects.
--- Index: [raceId][gender] where gender 0=male, 1=female.
+--- Index: [raceId][gender] where gender 0=male, 1=female.
 Paragon.SOUND_EFFECTS = {
 	[1]  = { [0] = 1838,  [1] = 2032  }, -- Human
 	[2]  = { [0] = 2262,  [1] = 2370  }, -- Orc
