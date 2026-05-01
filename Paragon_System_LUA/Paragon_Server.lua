@@ -118,10 +118,11 @@ function Handlers.AllocatePoint(player, statId, amount)
 	local newValue = current + amount
 	ApplyStatAuras(player, stat, newValue)
 
-	-- Update DB (async) and send known values to client immediately
+	-- Atomic + synchronous DB write so that a quick map change cannot
+	-- observe a half-applied update (stat written, unspent not yet, or
+	-- vice versa) and trigger the C++ integrity-mismatch path.
 	local newUnspent = unspent - amount
-	Paragon.UpdateAllocation(characterID, stat.dbColumn, newValue)
-	Paragon.UpdateUnspentPoints(characterID, newUnspent)
+	Paragon.UpdateAllocationAndUnspent(characterID, stat.dbColumn, newValue, newUnspent)
 	allocations[statId] = newValue
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
 		allocations, newUnspent)
@@ -157,10 +158,9 @@ function Handlers.DeallocatePoint(player, statId, amount)
 	local newValue = current - amount
 	ApplyStatAuras(player, stat, newValue)
 
-	-- Update DB (async) and send known values to client immediately
+	-- Atomic + synchronous DB write (see AllocatePoint for rationale).
 	local newUnspent = unspent + amount
-	Paragon.UpdateAllocation(characterID, stat.dbColumn, newValue)
-	Paragon.UpdateUnspentPoints(characterID, newUnspent)
+	Paragon.UpdateAllocationAndUnspent(characterID, stat.dbColumn, newValue, newUnspent)
 	allocations[statId] = newValue
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
 		allocations, newUnspent)
