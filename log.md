@@ -4,6 +4,7 @@
 
 ## 2026
 
+- 2026-05-01 — fix(security): validate handler args via Dep_Validation lib ([74dbc44](https://github.com/Shoro2/mod-paragon/commit/74dbc44939d48963bd59e51e3a39cf0931752ae1)) — `Paragon_Server.lua` Allocate/DeallocatePoint validieren `statId` (1..#STATS) und `amount` (positive Int ≤ 666); permissive Shim-Fallback wenn Lib fehlt. Erledigt M1 aus `todo.md`.
 - 2026-04-28 — fix(Core): trigger Life Leech for caster pets, totems and charm damage ([eb7fea3](https://github.com/Shoro2/mod-paragon/commit/eb7fea35d4f56faf4862f406220fe215c15a5dd8)) — Resolve via `GetCharmerOrOwnerPlayerOrPlayerItself()`; victim-owner-check gegen Self-Heal aus Selbstschaden.
 - 2026-04-28 — style(Core): fix codestyle violations blocking CI ([ad6e15d](https://github.com/Shoro2/mod-paragon/commit/ad6e15dde249c4726b742c4968d77b878b0b6a03)) — `GetCounter()` → `ToString()` in Logs, doppelte Leerzeilen entfernt.
 - 2026-04-28 — fix(Core): resolve pre-existing -Werror build failures ([ea808d2](https://github.com/Shoro2/mod-paragon/commit/ea808d22f7005dea38c710bd366dc9787e882875)) — `memberCount` ungenutzt entfernt; `OnGossipSelect override` Spezifizierer ergänzt.
