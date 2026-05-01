@@ -6,6 +6,31 @@
 
 local AIO = AIO or require("AIO")
 
+-- Optional dependency: shared validation lib (share-public/AIO_Server/Dep_Validation/).
+-- Eluna lädt scripts alphabetisch, `Dep_*` kommt vor `Paragon_*` → Lib ist zur
+-- Loadzeit da. Ohne Lib läuft das Modul mit permissiveren Shims weiter, gibt
+-- aber eine Warning aus.
+local Validate = _G.Validate
+if not Validate then
+	print("[Paragon] WARNING: Dep_Validation/validation.lua nicht geladen — input validation läuft permissiv. Bitte share-public/AIO_Server/Dep_Validation/ nach lua_scripts/ deployen.")
+	Validate = {
+		IsIntInRange = function(v, lo, hi)
+			return type(v) == "number" and v == math.floor(v) and v >= lo and v <= hi
+		end,
+		IsPositiveInt = function(v, cap)
+			return type(v) == "number" and v == math.floor(v) and v >= 1 and v <= (cap or 2147483647)
+		end,
+		Reject = function(player, handler, reason)
+			print(string.format("[Validate] reject handler=%s reason=%s", tostring(handler), tostring(reason)))
+			return false
+		end,
+	}
+end
+
+-- Hard limit für `amount` aus dem Client (sichert gegen über-große Werte, die
+-- nichts brächten — Allokation wird ohnehin auf unspent_points geclampt).
+local MAX_AMOUNT = 666
+
 local Handlers = AIO.AddHandlers("PARAGON_SERVER", {})
 
 --- Apply big+small aura pair for a stat.
@@ -80,17 +105,26 @@ end
 
 --- Allocate points into a stat.
 -- @param player Player object (injected by AIO)
--- @param statId number - the stat to allocate into
--- @param amount number - how many points to allocate (default 1)
+-- @param statId number - the stat to allocate into (1..#Paragon.STATS)
+-- @param amount number - how many points to allocate (1..MAX_AMOUNT, default 1)
 function Handlers.AllocatePoint(player, statId, amount)
+	-- Server-side validation: never trust client args.
+	if not Validate.IsIntInRange(statId, 1, #Paragon.STATS) then
+		return Validate.Reject(player, "AllocatePoint", "statId out of range")
+	end
+
+	-- amount default = 1; clamp to [1, MAX_AMOUNT].
+	if amount == nil then amount = 1 end
+	if not Validate.IsPositiveInt(amount, MAX_AMOUNT) then
+		return Validate.Reject(player, "AllocatePoint", "amount not a positive int <= "..MAX_AMOUNT)
+	end
+
 	local stat = Paragon.STAT_BY_ID[statId]
 	if not stat then
+		-- Sollte durch Range-Check oben unmöglich sein, aber doppelt hält besser.
 		player:SendBroadcastMessage("Invalid stat.")
 		return
 	end
-
-	amount = tonumber(amount) or 1
-	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
 	local allocations, unspent = Paragon.GetAllocations(characterID)
@@ -129,17 +163,24 @@ end
 
 --- Deallocate points from a stat.
 -- @param player Player object (injected by AIO)
--- @param statId number - the stat to deallocate from
--- @param amount number - how many points to deallocate (default 1)
+-- @param statId number - the stat to deallocate from (1..#Paragon.STATS)
+-- @param amount number - how many points to deallocate (1..MAX_AMOUNT, default 1)
 function Handlers.DeallocatePoint(player, statId, amount)
+	-- Server-side validation: never trust client args.
+	if not Validate.IsIntInRange(statId, 1, #Paragon.STATS) then
+		return Validate.Reject(player, "DeallocatePoint", "statId out of range")
+	end
+
+	if amount == nil then amount = 1 end
+	if not Validate.IsPositiveInt(amount, MAX_AMOUNT) then
+		return Validate.Reject(player, "DeallocatePoint", "amount not a positive int <= "..MAX_AMOUNT)
+	end
+
 	local stat = Paragon.STAT_BY_ID[statId]
 	if not stat then
 		player:SendBroadcastMessage("Invalid stat.")
 		return
 	end
-
-	amount = tonumber(amount) or 1
-	if amount < 1 then return end
 
 	local characterID = player:GetGUIDLow()
 	local allocations, unspent = Paragon.GetAllocations(characterID)
