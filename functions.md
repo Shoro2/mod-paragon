@@ -1,48 +1,48 @@
-# Funktionen & Mechaniken — mod-paragon
+# Functions & mechanics — mod-paragon
 
-> Detaillierte Funktions- und Mechanik-Referenz. Inhalts-/Zweck-Doku siehe `CLAUDE.md`.
+> Detailed function and mechanics reference. For content/purpose docs see `CLAUDE.md`.
 
-## Modul-Loader
+## Module loader
 
 ### `Addmod_paragonScripts()` (`src/Paragon_loader.cpp`)
-Ruft drei Sub-Loader:
+Calls three sub-loaders:
 - `AddParagonPlayerScripts()` — `ParagonPlayer` (PlayerScript) + `ParagonLifeLeech` (UnitScript) + `ParagonConfig` (WorldScript)
-- `AddMyNPCScripts()` — `npc_paragon` CreatureScript (Gossip)
-- (zusätzlich Cache-Init im WorldScript)
+- `AddMyNPCScripts()` — `npc_paragon` CreatureScript (gossip)
+- (additionally cache init in WorldScript)
 
-## Klassen-Übersicht
+## Class overview
 
-| Klasse | Typ | Zweck |
+| Class | Type | Purpose |
 |--------|-----|-------|
-| `ParagonPlayer` | `PlayerScript` | XP-Vergabe, Level-Up, Aura-Apply on Login/MapChange |
-| `ParagonLifeLeech` | `UnitScript` | Implementiert Stat #17 (Life Leech) via `OnDamage` |
-| `ParagonConfig` | `WorldScript` | `OnAfterConfigLoad` → 30+ `sConfigMgr->GetOption<>()` Calls |
-| `npc_paragon` | `CreatureScript` | Gossip-Menu für NPC 900100 |
+| `ParagonPlayer` | `PlayerScript` | XP grant, level-up, aura apply on login/map change |
+| `ParagonLifeLeech` | `UnitScript` | Implements stat #17 (Life Leech) via `OnDamage` |
+| `ParagonConfig` | `WorldScript` | `OnAfterConfigLoad` → 30+ `sConfigMgr->GetOption<>()` calls |
+| `npc_paragon` | `CreatureScript` | Gossip menu for NPC 900100 |
 
-## XP-System
+## XP system
 
-### XP-Quellen (alle pro Player im selben Map-Group-Member)
+### XP sources (each per player to all map group members)
 
-| Encounter-Typ | XP |
+| Encounter type | XP |
 |---------------|----|
-| Regular Elite | 1 |
-| Dungeon Elite | 1 |
-| Heroic Dungeon Elite | 2 |
-| Dungeon Boss | 3 |
-| Heroic Dungeon Boss | 5 |
-| Raid Boss | 10 |
-| World Boss | 20 |
-| Daily/Weekly Quest | 3 |
+| Regular elite | 1 |
+| Dungeon elite | 1 |
+| Heroic dungeon elite | 2 |
+| Dungeon boss | 3 |
+| Heroic dungeon boss | 5 |
+| Raid boss | 10 |
+| World boss | 20 |
+| Daily/weekly quest | 3 |
 
-### Level-Formel
-`xpForLevel = 100 * pow(1.1, level-1)`. Wert wird in `character_paragon.xp` gespeichert und **zählt herunter** zu 0. Bei 0 → Level-Up, neue XP berechnet, `unspent_points += 5`.
+### Level formula
+`xpForLevel = 100 * pow(1.1, level-1)`. The value is stored in `character_paragon.xp` and **counts down** to 0. At 0 → level-up, new XP calculated, `unspent_points += 5`.
 
-Overflow-Schutz: `pow()` mit `int64`-Akkumulation, `std::min()` cap auf `INT32_MAX`. Bei `Paragon.MaxLevel > 0` und erreichtem Cap wird kein weiterer XP-Gewinn akzeptiert.
+Overflow protection: `pow()` with `int64` accumulation, `std::min()` cap at `INT32_MAX`. With `Paragon.MaxLevel > 0` and the cap reached, no further XP gain is accepted.
 
-### Group-XP
-`OnCreatureKill` iteriert Group-Members. Nur Mitglieder auf derselben Map zählen. PartyReduce-Faktor (`Paragon.PartyReduce`, Default 1.0) skaliert XP pro Member.
+### Group XP
+`OnCreatureKill` iterates group members. Only members on the same map count. The PartyReduce factor (`Paragon.PartyReduce`, default 1.0) scales XP per member.
 
-## In-Memory-Cache
+## In-memory cache
 
 ```cpp
 std::unordered_map<uint32 /*accountID*/, ParagonCache> _cache;
@@ -55,32 +55,32 @@ struct ParagonCache {
 };
 ```
 
-- **Login** → SELECT, Cache befüllen.
-- **MapChange** → liest aus Cache, kein DB-Call.
-- **XP-Gain / Level-Up** → Cache aktualisieren, async DB-UPDATE.
-- **Logout** → Cache invalidieren.
+- **Login** → SELECT, populate cache.
+- **MapChange** → reads from cache, no DB call.
+- **XP gain / level-up** → update cache, async DB UPDATE.
+- **Logout** → invalidate cache.
 
-Mutex-Schutz bei jedem Zugriff. Bei mehreren Logins desselben Accounts (Multi-Box) wird Cache **nicht** dupliziert — alle Sessions teilen denselben Eintrag.
+Mutex protection on every access. With multiple logins of the same account (multi-box), the cache is **not** duplicated — all sessions share the same entry.
 
-## Stat-Aura-System
+## Stat aura system
 
-### 17 Stats
+### 17 stats
 
-| ID | Name | Aura-Klein | Aura-Groß | Skalierung |
+| ID | Name | Aura small | Aura big | Scaling |
 |----|------|-----------|----------|-----------|
-| 1 | Strength | 100001 | 100201 | groß = klein × 100 |
-| 2 | Intellect | 100002 | 100202 | dito |
-| 3 | Agility | 100003 | 100203 | dito |
-| 4 | Spirit | 100004 | 100204 | dito |
-| 5 | Stamina | 100005 | 100205 | dito |
-| 6-16 | Haste, ArmorPen, SpellPower, Crit, MountSpeed, ManaRegen, Hit, Block, Expertise, Parry, Dodge | 100016-100026 | 100216-100226 | dito |
-| 17 | Life Leech | 100027 | 100227 | dito |
+| 1 | Strength | 100001 | 100201 | big = small × 100 |
+| 2 | Intellect | 100002 | 100202 | ditto |
+| 3 | Agility | 100003 | 100203 | ditto |
+| 4 | Spirit | 100004 | 100204 | ditto |
+| 5 | Stamina | 100005 | 100205 | ditto |
+| 6-16 | Haste, ArmorPen, SpellPower, Crit, MountSpeed, ManaRegen, Hit, Block, Expertise, Parry, Dodge | 100016-100026 | 100216-100226 | ditto |
+| 17 | Life Leech | 100027 | 100227 | ditto |
 
-Alle IDs **konfigurierbar** via `Paragon.Id<Stat>` und `Paragon.IdBig<Stat>`.
+All IDs **configurable** via `Paragon.Id<Stat>` and `Paragon.IdBig<Stat>`.
 
-### Big+Small-Allocation
+### Big+small allocation
 
-Aura-Stack-Limit ist `uint8` = 255. Workaround = Aura-Paar:
+The aura stack limit is `uint8` = 255. Workaround = aura pair:
 
 ```
 N = unspent points to allocate
@@ -88,11 +88,11 @@ big_stacks   = N / 100
 small_stacks = N % 100
 ```
 
-Beispiel: 666 Strength = 6×Big-Stack(à 500 Stat-Wert) + 66×Small-Stack(à 5) = 3330 effektiver Wert. Big-Auras haben in `spell_dbc` einen 100× größeren `BasePoints`-Wert.
+Example: 666 Strength = 6×big stack (à 500 stat value) + 66×small stack (à 5) = 3330 effective value. Big auras have a 100× larger `BasePoints` value in `spell_dbc`.
 
 ### `RefreshParagonAura(Player*, uint32 const points[17])`
 
-Datengetriebene Schleife:
+Data-driven loop:
 ```cpp
 for (uint8 i = 0; i < 17; ++i) {
     uint32 pts = points[i];
@@ -103,19 +103,19 @@ for (uint8 i = 0; i < 17; ++i) {
 }
 ```
 
-Wo `ApplyAuraStack(player, auraId, n)`:
+Where `ApplyAuraStack(player, auraId, n)`:
 - `n == 0` → `player->RemoveAura(auraId);`
 - `n > 0` → `player->AddAura(auraId, player); player->GetAura(auraId)->SetStackAmount(n);`
 
-**Wichtig**: kein `RestoreHealth()` oder `RestoreMana()` mehr — der frühere Health/Mana-Exploit beim Aura-Refresh wurde behoben.
+**Important**: no more `RestoreHealth()` or `RestoreMana()` — the previous health/mana exploit on aura refresh has been fixed.
 
-## NPC `npc_paragon` (CreatureScript, Entry 900100)
+## NPC `npc_paragon` (CreatureScript, entry 900100)
 
-Gossip-Optionen:
-1. **"Show Info"** — listet aktuelle Allokationen.
-2. **"Reset Points"** — setzt alle 17 Spalten auf 0, refundet Punkte ins `unspent_points`-Feld, ruft `RefreshParagonAura` neu auf.
+Gossip options:
+1. **"Show Info"** — lists current allocations.
+2. **"Reset Points"** — sets all 17 columns to 0, refunds points into the `unspent_points` field, calls `RefreshParagonAura` again.
 
-Greeting-Text-ID: `197760` (`npc_text`-Tabelle).
+Greeting text ID: `197760` (`npc_text` table).
 
 ## Life Leech (`ParagonLifeLeech::OnDamage`)
 
@@ -125,9 +125,9 @@ void OnDamage(Unit* attacker, Unit* victim, uint32& damage, SpellInfo const* spe
     Player* owner = attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
     if (!owner) return;
 
-    // Self-/Friendly-Damage-Check
+    // Self/friendly damage check
     Player* victimOwner = victim->GetCharmerOrOwnerPlayerOrPlayerItself();
-    if (victimOwner == owner) return;  // kein Self-Heal
+    if (victimOwner == owner) return;  // no self-heal
 
     uint32 leechStacks = owner->GetAuraCount(conf_AuraIds[16])      // small
                        + owner->GetAuraCount(conf_BigAuraIds[16]) * 100; // big
@@ -140,67 +140,67 @@ void OnDamage(Unit* attacker, Unit* victim, uint32& damage, SpellInfo const* spe
 }
 ```
 
-Funktioniert für:
+Works for:
 - Player direct (Mage Fireball, Priest Smite, Warlock Shadow Bolt)
 - Player Pet (Demonology Felguard, Frost Mage Water Elemental, BM Hunter Pets)
-- Player Totem (alle Shaman-Specs)
+- Player Totem (all Shaman specs)
 - Charmed Unit (Mind Control, Frost DK Dancing Rune Weapon)
 
-Schließt aus:
-- Selbstschaden (Fall Damage, Environmental, eigene AoE-Splashes auf sich selbst)
-- Friendly Fire auf eigene Pets/Totems
+Excludes:
+- Self damage (fall damage, environmental, own AoE splashes onto self)
+- Friendly fire on own pets/totems
 
-## AIO-Layer (Lua)
+## AIO layer (Lua)
 
-### Server-Handler (`Paragon_Server.lua`)
+### Server handlers (`Paragon_Server.lua`)
 
-| Handler | Args | Wirkung |
+| Handler | Args | Effect |
 |---------|------|---------|
-| `RequestData` | — | sendet `categories`, `stats`, `allocations`, `unspent_points` an Client |
-| `AllocatePoint` | `statId, amount` | clamped auf verfügbare Punkte + MaxStat; `UPDATE character_paragon_points`, `ApplyStatAuras` neu |
-| `DeallocatePoint` | `statId, amount` | clamped auf aktuelle Allokation; verbucht Refund auf `unspent_points` |
+| `RequestData` | — | sends `categories`, `stats`, `allocations`, `unspent_points` to client |
+| `AllocatePoint` | `statId, amount` | clamped to available points + MaxStat; `UPDATE character_paragon_points`, re-applies `ApplyStatAuras` |
+| `DeallocatePoint` | `statId, amount` | clamped to current allocation; refunds onto `unspent_points` |
 
-### Client-UI (`Paragon_Client.lua`)
+### Client UI (`Paragon_Client.lua`)
 
-| Frame/Element | Zweck |
+| Frame/element | Purpose |
 |---------------|-------|
-| `ParagonFrame` | Hauptfenster (620×440, draggable, ESC-close) |
-| Kategorie-Tabs (links) | Primary / Offensive / Defensive / Utility |
-| `statRows[1..8]` | Icon, Name, Tooltip, "X/MAX"-Anzeige, +/- |
-| +/- Buttons | Shift+Click = `amount=10`, sonst 1 |
-| ESC-Menu-Button | Game-Menu-Eintrag "Paragon" |
+| `ParagonFrame` | Main window (620×440, draggable, ESC-close) |
+| Category tabs (left) | Primary / Offensive / Defensive / Utility |
+| `statRows[1..8]` | Icon, name, tooltip, "X/MAX" display, +/- |
+| +/- buttons | Shift+click = `amount=10`, otherwise 1 |
+| ESC menu button | Game menu entry "Paragon" |
 
 ### `Paragon_Data.lua`
 
-- `Paragon.STATS[]` — 17 Einträge mit `id, name, category, icon, tooltip, auraId, bigAuraId, dbColumn`
-- `Paragon.MAX_POINTS[]` — pro Stat, muss mit `mod_paragon.conf` synchron sein
-- `Paragon.GetAllocations(characterID)` — DB-Query auf `character_paragon_points`
-- Race/Gender-spezifische Sound-IDs für "Not enough money"-Voice
+- `Paragon.STATS[]` — 17 entries with `id, name, category, icon, tooltip, auraId, bigAuraId, dbColumn`
+- `Paragon.MAX_POINTS[]` — per stat, must be in sync with `mod_paragon.conf`
+- `Paragon.GetAllocations(characterID)` — DB query against `character_paragon_points`
+- Race/gender-specific sound IDs for the "Not enough money" voice
 
-## Konfigurations-Optionen (Auszug)
+## Configuration options (excerpt)
 
-| Schlüssel | Default | Wirkung |
+| Key | Default | Effect |
 |-----------|---------|---------|
-| `Paragon.Enable` | true | Master-Toggle |
-| `Paragon.MaxLevel` | 666 | 0 = unbegrenzt |
-| `Paragon.MaxStr`-`Paragon.MaxLifeLeech` | 666 | Per-Stat-Cap (0 = unbegrenzt) |
-| `Paragon.IdStr` | 100001 | Small-Aura-IDs |
-| `Paragon.IdBigStr` | 100201 | Big-Aura-IDs (Default = small + 200) |
-| `Paragon.LifeLeechPct` | 0.5 | % Heal per Stack |
-| `Paragon.XpPerEliteRegular`-`Paragon.XpPerWorldBoss` | siehe Tabelle | XP-Belohnungen |
-| `Paragon.PartyReduce` | 1.0 | Multiplikator für Group-XP |
+| `Paragon.Enable` | true | master toggle |
+| `Paragon.MaxLevel` | 666 | 0 = unlimited |
+| `Paragon.MaxStr`-`Paragon.MaxLifeLeech` | 666 | per-stat cap (0 = unlimited) |
+| `Paragon.IdStr` | 100001 | small-aura IDs |
+| `Paragon.IdBigStr` | 100201 | big-aura IDs (default = small + 200) |
+| `Paragon.LifeLeechPct` | 0.5 | % heal per stack |
+| `Paragon.XpPerEliteRegular`-`Paragon.XpPerWorldBoss` | see table | XP rewards |
+| `Paragon.PartyReduce` | 1.0 | multiplier for group XP |
 
-## Bekannte Einschränkungen
+## Known limitations
 
-- **SQL-Injection-Risiko in Lua**: `CharDBExecute` mit String-Concat (Eluna ohne PreparedStatements). Validierung im Server-Handler nötig.
-- **C++ und Lua können kollidieren** — beide schreiben dieselbe DB-Tabelle. Aktuell konvergiert die Logik, aber Race-Conditions bei sehr schneller Allokation sind theoretisch möglich.
-- **Anti-Farm-Maßnahmen fehlen** — keine Cooldowns auf XP-Quellen, keine Diminishing Returns bei wiederholten Kills derselben Mob-Entry.
+- **SQL injection risk in Lua**: `CharDBExecute` with string concatenation (Eluna without prepared statements). Validation in the server handler is necessary.
+- **C++ and Lua can collide** — both write the same DB table. Today the logic converges, but race conditions during very fast allocation are theoretically possible.
+- **No anti-farm measures** — no cooldowns on XP sources, no diminishing returns on repeated kills of the same mob entry.
 
-## Test-Kommandos (für GMs)
+## Test commands (for GMs)
 
 ```
-.aura 100001    # Strength-Small applizieren (für Verifikation)
-.aura 100201    # Strength-Big
-.aura 100000    # Level-Counter
-.npc add 900100 # Paragon-NPC spawnen
+.aura 100001    # apply Strength small (for verification)
+.aura 100201    # Strength big
+.aura 100000    # level counter
+.npc add 900100 # spawn Paragon NPC
 ```
