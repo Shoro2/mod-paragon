@@ -1,15 +1,15 @@
 # TODOs — mod-paragon
 
-> Offene Aufgaben für dieses Modul. Erledigte TODOs in `log.md` festhalten und hier entfernen.
+> Open tasks for this module. Record completed TODOs in `log.md` and remove them here.
 
-## Sicherheit
+## Security
 
-- [ ] **(mittel)** SQL-Injection-Risiko in Lua-Layer: `Paragon_Server.lua` nutzt `CharDBExecute` mit String-Concat (Eluna ohne Prepared Statements). Alle Handler-Args explizit validieren — speziell `statId` (Integer-Whitelist 1..17), `amount` (positive Integer mit Cap). Validation-Lib steht ab 2026-05 in `share-public/AIO_Server/Dep_Validation/validation.lua` zur Verfügung.
+- [ ] **(medium)** SQL injection risk in the Lua layer: `Paragon_Server.lua` uses `CharDBExecute` with string concatenation (Eluna without prepared statements). Validate all handler args explicitly — particularly `statId` (integer whitelist 1..17), `amount` (positive integer with cap). The validation lib is available since 2026-05 in `share-public/AIO_Server/Dep_Validation/validation.lua`.
 
-## Doku
+## Docs
 
-- [ ] **(hoch)** `CLAUDE.md` enthält eine "Known Issues"-Liste, die größtenteils erledigt ist (`~~strikethrough~~`). Phase B räumt das auf — verschoben in `log.md` (erledigt) oder hier (offen).
+- [ ] **(high)** `CLAUDE.md` contains a "Known Issues" list that is largely resolved (`~~strikethrough~~`). Phase B will clean this up — moved into `log.md` (resolved) or here (open).
 
-## Konvention
+## Convention
 
-Erledigte Items NICHT durchstreichen — entfernen und in `log.md` dokumentieren.
+Do NOT cross out completed items — remove them and document them in `log.md`.
