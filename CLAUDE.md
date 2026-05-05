@@ -1,85 +1,85 @@
 # mod-paragon
 
-> Lies zuerst [`INDEX.md`](./INDEX.md). Mechanik & Hooks: [`functions.md`](./functions.md). Folder-Layout: [`data_structure.md`](./data_structure.md). Offenes: [`todo.md`](./todo.md). Commit-Spur: [`log.md`](./log.md).
+> Read [`INDEX.md`](./INDEX.md) first. Mechanics & hooks: [`functions.md`](./functions.md). Folder layout: [`data_structure.md`](./data_structure.md). Open items: [`todo.md`](./todo.md). Commit trail: [`log.md`](./log.md).
 
-## Was ist das Modul?
+## What is the module?
 
-AzerothCore-Modul für **WoW 3.3.5a (WotLK)**. Implementiert ein **Post-Level-80-Progressionssystem** ("Paragon"): Charaktere, die das normale WotLK-Levelcap erreicht haben, sammeln aus Kreaturen-Kills, Quests und Bossen weitere Erfahrungspunkte und erhalten pro Paragon-Level 5 Punkte, die sie auf 17 Stats verteilen können (Strength, Intellect, Agility, Spirit, Stamina, Haste, ArmorPen, SpellPower, Crit, MountSpeed, ManaRegen, Hit, Block, Expertise, Parry, Dodge, **LifeLeech**).
+AzerothCore module for **WoW 3.3.5a (WotLK)**. Implements a **post-level-80 progression system** ("Paragon"): characters that reached the regular WotLK level cap collect additional experience points from creature kills, quests, and bosses, and receive 5 points per Paragon level to distribute across 17 stats (Strength, Intellect, Agility, Spirit, Stamina, Haste, ArmorPen, SpellPower, Crit, MountSpeed, ManaRegen, Hit, Block, Expertise, Parry, Dodge, **LifeLeech**).
 
-**Account-weit**: Level + XP geteilt über alle Charaktere des Accounts.
-**Per Charakter**: die Stat-Verteilung — jeder Charakter wählt eigene Schwerpunkte.
+**Account-wide**: level + XP shared across all characters of the account.
+**Per character**: the stat distribution — every character picks its own focus.
 
-## Rolle im Gesamtprojekt
+## Role in the overall project
 
 ```
 Player Kill / Quest Complete
        │
-       ▼ XP-Gain (mod-paragon)
+       ▼ XP gain (mod-paragon)
        │
-       ▼ Level-Up → 5 unspent_points → Player verteilt via UI
+       ▼ Level-up → 5 unspent_points → Player allocates via UI
        │
-       ▼ character_paragon_points → invisible Stack-Auras (100xxx) auf Player
+       ▼ character_paragon_points → invisible stack auras (100xxx) on player
        │
-       ▼ Wert wird gelesen von mod-paragon-itemgen
-                 (skaliert Item-Bonus-Stats: amount = ceil(level × scaling × quality))
+       ▼ value is read by mod-paragon-itemgen
+                 (scales item bonus stats: amount = ceil(level × scaling × quality))
 ```
 
-mod-paragon ist die **Grundlage** für mod-paragon-itemgen. Ohne mod-paragon hat ein Character keinen Paragon-Level → mod-paragon-itemgen würde keine Bonus-Stats anwenden (`MinParagonLevel`-Check).
+mod-paragon is the **foundation** for mod-paragon-itemgen. Without mod-paragon a character has no Paragon level → mod-paragon-itemgen would not apply bonus stats (`MinParagonLevel` check).
 
-## Custom-Daten
+## Custom data
 
-| Typ | Eintrag | Bemerkung |
+| Type | Entry | Note |
 |-----|--------|-----------|
-| **DB-Tabelle (acore_characters)** | `character_paragon` | Account-Level/XP (PK `accountID`, `level`, `xp` zählt **runter** zu 0) |
-| | `character_paragon_points` | Per-Char Stat-Allocation (`unspent_points` + 17 Stat-Spalten) |
-| **Custom-Spells** | 100000 (Level-Counter), 100001-100005 (Str/Int/Agi/Spi/Sta), 100016-100027 (alle Combat-Ratings + LifeLeech) | siehe [`share-public/docs/06-custom-ids.md`](https://github.com/Shoro2/share-public/blob/main/docs/06-custom-ids.md) |
-| | 100201-100227 | "Big"-Counterparts für Stats > 255 (Stack ×100) |
-| **Custom-NPC** | `npc_paragon` (Entry **900100**) | Gossip-Menü für Info / Reset |
-| **AIO-Handler-Namen** | `Paragon` (Server) / `Paragon_Client` (Client) | Details: [`functions.md`](./functions.md#aio-handler) |
-| **Slash-Commands** | (keine) | UI öffnet sich über NPC oder ESC-Menü-Button |
-| **Custom-Items** | keine — Paragon-Punkte sind **DB-Wert** (`unspent_points`), kein Item |
+| **DB table (acore_characters)** | `character_paragon` | Account level/XP (PK `accountID`, `level`, `xp` counts **down** to 0) |
+| | `character_paragon_points` | Per-character stat allocation (`unspent_points` + 17 stat columns) |
+| **Custom spells** | 100000 (level counter), 100001-100005 (Str/Int/Agi/Spi/Sta), 100016-100027 (all combat ratings + LifeLeech) | see [`share-public/docs/06-custom-ids.md`](https://github.com/Shoro2/share-public/blob/main/docs/06-custom-ids.md) |
+| | 100201-100227 | "Big" counterparts for stats > 255 (stack ×100) |
+| **Custom NPC** | `npc_paragon` (entry **900100**) | Gossip menu for info / reset |
+| **AIO handler names** | `Paragon` (server) / `Paragon_Client` (client) | Details: [`functions.md`](./functions.md#aio-handler) |
+| **Slash commands** | (none) | UI opens via NPC or ESC menu button |
+| **Custom items** | none — Paragon points are a **DB value** (`unspent_points`), not an item |
 
-## XP-Quellen (Top-Level)
+## XP sources (top level)
 
-| Encounter-Typ | XP |
+| Encounter type | XP |
 |---------------|----|
-| Regular/Dungeon Elite | 1 |
-| Heroic Dungeon Elite | 2 |
-| Dungeon Boss | 3 |
-| Heroic Dungeon Boss | 5 |
-| Raid Boss | 10 |
-| World Boss | 20 |
-| Daily/Weekly Quest | 3 |
+| Regular/dungeon elite | 1 |
+| Heroic dungeon elite | 2 |
+| Dungeon boss | 3 |
+| Heroic dungeon boss | 5 |
+| Raid boss | 10 |
+| World boss | 20 |
+| Daily/weekly quest | 3 |
 
-Group-Kills geben XP an alle Group-Members auf derselben Map. Level-Formel: `100 × 1.1^(level-1)` XP, zählt **herunter** zu 0.
+Group kills give XP to all group members on the same map. Level formula: `100 × 1.1^(level-1)` XP, counts **down** to 0.
 
-## Konfiguration (Top-Level)
+## Configuration (top level)
 
-`conf/mod_paragon.conf.dist` — ~30 Optionen:
+`conf/mod_paragon.conf.dist` — ~30 options:
 
-- Master-Toggle: `Paragon.Enable`
-- Level-Cap: `Paragon.MaxLevel` (0 = unbegrenzt)
-- Aura-IDs: `Paragon.IdStr`, `Paragon.IdInt`, …, `Paragon.IdLifeLeech` (alle individuell überschreibbar)
-- Max-Punkte pro Stat: `Paragon.MaxStr`, `Paragon.MaxInt`, … (Default 255 je, 0 = unbegrenzt)
-- XP-Belohnungen: `Paragon.XpEliteDungeon`, `Paragon.XpRaidBoss`, …
-- Party-XP-Reduce: `Paragon.PartyReducePct`
-- LifeLeech-%: `Paragon.LifeLeechPct = 0.5` (Default)
+- Master toggle: `Paragon.Enable`
+- Level cap: `Paragon.MaxLevel` (0 = unlimited)
+- Aura IDs: `Paragon.IdStr`, `Paragon.IdInt`, …, `Paragon.IdLifeLeech` (each individually overridable)
+- Max points per stat: `Paragon.MaxStr`, `Paragon.MaxInt`, … (default 255 each, 0 = unlimited)
+- XP rewards: `Paragon.XpEliteDungeon`, `Paragon.XpRaidBoss`, …
+- Party XP reduce: `Paragon.PartyReducePct`
+- LifeLeech %: `Paragon.LifeLeechPct = 0.5` (default)
 
-Vollständige Liste mit Defaults: [`functions.md`](./functions.md#konfiguration).
+Full list with defaults: [`functions.md`](./functions.md#configuration).
 
-## Was das Modul **nicht** tut
+## What this module does **not** do
 
-- **kein** Item-Enchanting → das macht das eigenständige `mod-paragon-itemgen`
-- **keine** Talente / Specs → Paragon-Stats sind reine numerische Boni
-- **kein** PvP-Toggle (Stats wirken in PvP wie in PvE)
-- **kein** Anti-Farm-Schutz (siehe [`todo.md`](./todo.md))
+- **no** item enchanting → that's the standalone `mod-paragon-itemgen`
+- **no** talents / specs → Paragon stats are pure numeric bonuses
+- **no** PvP toggle (stats apply in PvP just like in PvE)
+- **no** anti-farm protection (see [`todo.md`](./todo.md))
 
-## Hinweise zur Architektur
+## Architecture notes
 
-- **Hybrid C++/Lua**: Beide Layer schreiben in `character_paragon_points`. C++ ist die Single-Source-of-Truth für Aura-Anwendung; Lua/AIO ist die UI für Allokation. Race-Conditions theoretisch möglich, in der Praxis durch UI-Latenz selten — siehe [`todo.md`](./todo.md).
-- **Stack-Limit-Workaround**: WoW-Auras stacken bis 255. Für Stats > 255 gibt es paarige "Big"-Auras (Stack × 100) und "Small"-Auras (Stack × 1). Allokation `N`: `big = N/100`, `small = N%100`.
-- **LifeLeech (100027)**: heilt einen konfigurierbaren Prozentsatz des verursachten Schadens. Funktioniert auch über Pets/Totems via `Unit::GetCharmerOrOwnerPlayerOrPlayerItself()`.
+- **Hybrid C++/Lua**: both layers write to `character_paragon_points`. C++ is the single source of truth for aura application; Lua/AIO is the UI for allocation. Race conditions are theoretically possible but rare in practice due to UI latency — see [`todo.md`](./todo.md).
+- **Stack limit workaround**: WoW auras stack up to 255. For stats > 255 there are paired "big" auras (stack × 100) and "small" auras (stack × 1). Allocation `N`: `big = N/100`, `small = N%100`.
+- **LifeLeech (100027)**: heals a configurable percentage of damage dealt. Also works through pets/totems via `Unit::GetCharmerOrOwnerPlayerOrPlayerItself()`.
 
-## Lizenz
+## License
 
 GPL v2.

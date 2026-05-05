@@ -1,86 +1,86 @@
-# Datei- und Verzeichnisstruktur — mod-paragon
+# File and directory structure — mod-paragon
 
-> Statisches Inventar. Bei Hinzufügen/Löschen von Files hier mitpflegen.
+> Static inventory. Maintain this when adding/removing files.
 
 ## Tree
 
 ```
 mod-paragon/
 ├── conf/
-│   └── mod_paragon.conf.dist                          # Konfig-Template (~30 Optionen)
+│   └── mod_paragon.conf.dist                          # Config template (~30 options)
 ├── data/sql/
-│   ├── db-auth/                                       # (ggf. leer / reserviert)
-│   ├── db-characters/                                 # Character-Schema (paragon Tabellen)
-│   └── db-world/                                      # World-Schema (Big-Stat-Spells, NPC, Item)
+│   ├── db-auth/                                       # (possibly empty / reserved)
+│   ├── db-characters/                                 # Character schema (paragon tables)
+│   └── db-world/                                      # World schema (big-stat spells, NPC, item)
 ├── Paragon_System_LUA/
-│   ├── Paragon_Server.lua                             # AIO-Server: Allocate/Deallocate/Reset, ApplyStatAuras
-│   ├── Paragon_Client.lua                             # AIO-Client: Frame, Stat-Rows, Tabs, +/- Buttons
-│   └── Paragon_Data.lua                               # Stat-Definitionen, MAX_POINTS, Sound-IDs, DB-Helper
+│   ├── Paragon_Server.lua                             # AIO server: Allocate/Deallocate/Reset, ApplyStatAuras
+│   ├── Paragon_Client.lua                             # AIO client: frame, stat rows, tabs, +/- buttons
+│   └── Paragon_Data.lua                               # Stat definitions, MAX_POINTS, sound IDs, DB helpers
 ├── src/
 │   ├── Paragon_loader.cpp                             # Loader: Addmod_paragonScripts() (~550 B)
-│   ├── ParagonPlayer.cpp                              # Hauptlogik: PlayerScript+UnitScript+WorldScript (~26 KB)
-│   ├── ParagonNPC.cpp                                 # CreatureScript für npc_paragon (~1.8 KB)
+│   ├── ParagonPlayer.cpp                              # Main logic: PlayerScript+UnitScript+WorldScript (~26 KB)
+│   ├── ParagonNPC.cpp                                 # CreatureScript for npc_paragon (~1.8 KB)
 │   └── ParagonUtils.h                                 # Header (~200 B)
-├── apps/ci/ci-codestyle.sh                            # CI-Codestyle-Validation
-├── include.sh                                          # Build-Integration
-├── pull_request_template.md                            # GitHub PR-Template
-├── CLAUDE.md                                           # Detaillierte Inhalts-Doku
-├── log.md                                              # Commit-Log (modular)
-├── data_structure.md                                   # Diese Datei
-└── functions.md                                        # Mechanik- und Funktions-Referenz
+├── apps/ci/ci-codestyle.sh                            # CI codestyle validation
+├── include.sh                                          # Build integration
+├── pull_request_template.md                            # GitHub PR template
+├── CLAUDE.md                                           # Detailed content doc
+├── log.md                                              # Commit log (modular)
+├── data_structure.md                                   # This file
+└── functions.md                                        # Mechanics and function reference
 ```
 
-## Datei-Zwecke
+## File purposes
 
-| Datei | Zweck |
+| File | Purpose |
 |-------|-------|
-| `conf/mod_paragon.conf.dist` | 30+ Optionen: Aura-IDs (klein/groß), Big-Aura-IDs (`Paragon.IdBig*`), MaxStats[17], MaxLevel, XP-Belohnungen, PartyReduce |
-| `data/sql/db-characters/base/character_paragon_create.sql` | Account-Level/XP-Tabelle |
-| `data/sql/db-characters/base/character_paragon_points_create.sql` | Per-Char Stat-Allokation (17 Spalten) |
-| `data/sql/db-characters/updates/add_plifeleech_column.sql` | Migration für Life-Leech-Spalte |
-| `data/sql/db-world/base/paragon_currency_item.sql` | Item-Template für Paragon-Punkte (Item 920920) |
-| `data/sql/db-world/base/paragon_big_stat_spells.sql` | 17 spell_dbc-Inserts für Big-Stat-Auras (IDs 100201-100227) |
-| `Paragon_System_LUA/Paragon_Data.lua` | Datenmodell: 17 Stat-Definitionen mit `auraId`, `bigAuraId`, Kategorie, Tooltip; `MAX_POINTS`-Tabelle |
-| `Paragon_System_LUA/Paragon_Server.lua` | AIO-Handler: `RequestData`, `AllocatePoint`, `DeallocatePoint`; `ApplyStatAuras`-Helper |
-| `Paragon_System_LUA/Paragon_Client.lua` | UI: `ParagonFrame`, Kategorie-Tabs, Stat-Rows, +/- Buttons (Shift = ×10), ESC-Menu-Button |
-| `src/Paragon_loader.cpp` | `Addmod_paragonScripts()` ruft `AddParagonPlayerScripts`, `AddMyNPCScripts`, `AddParagonConfigScripts` |
-| `src/ParagonPlayer.cpp` | enthält `ParagonPlayer` (PlayerScript), `ParagonLifeLeech` (UnitScript), `ParagonConfig` (WorldScript), Cache-Map |
-| `src/ParagonNPC.cpp` | CreatureScript `npc_paragon`: Gossip "Info / Reset" |
-| `src/ParagonUtils.h` | Forward-Declarations |
-| `apps/ci/ci-codestyle.sh` | Codestyle-CI-Check (4-Space, LF, Type-Pos, etc.) |
+| `conf/mod_paragon.conf.dist` | 30+ options: aura IDs (small/big), big-aura IDs (`Paragon.IdBig*`), MaxStats[17], MaxLevel, XP rewards, PartyReduce |
+| `data/sql/db-characters/base/character_paragon_create.sql` | Account level/XP table |
+| `data/sql/db-characters/base/character_paragon_points_create.sql` | Per-character stat allocation (17 columns) |
+| `data/sql/db-characters/updates/add_plifeleech_column.sql` | Migration for the Life Leech column |
+| `data/sql/db-world/base/paragon_currency_item.sql` | Item template for Paragon points (item 920920) |
+| `data/sql/db-world/base/paragon_big_stat_spells.sql` | 17 spell_dbc inserts for big-stat auras (IDs 100201-100227) |
+| `Paragon_System_LUA/Paragon_Data.lua` | Data model: 17 stat definitions with `auraId`, `bigAuraId`, category, tooltip; `MAX_POINTS` table |
+| `Paragon_System_LUA/Paragon_Server.lua` | AIO handlers: `RequestData`, `AllocatePoint`, `DeallocatePoint`; `ApplyStatAuras` helper |
+| `Paragon_System_LUA/Paragon_Client.lua` | UI: `ParagonFrame`, category tabs, stat rows, +/- buttons (Shift = ×10), ESC menu button |
+| `src/Paragon_loader.cpp` | `Addmod_paragonScripts()` calls `AddParagonPlayerScripts`, `AddMyNPCScripts`, `AddParagonConfigScripts` |
+| `src/ParagonPlayer.cpp` | contains `ParagonPlayer` (PlayerScript), `ParagonLifeLeech` (UnitScript), `ParagonConfig` (WorldScript), cache map |
+| `src/ParagonNPC.cpp` | CreatureScript `npc_paragon`: gossip "Info / Reset" |
+| `src/ParagonUtils.h` | Forward declarations |
+| `apps/ci/ci-codestyle.sh` | Codestyle CI check (4-space, LF, type position, etc.) |
 
-## Größenhinweise (Stand: 2026-05-01)
+## Size notes (as of 2026-05-01)
 
-- `ParagonPlayer.cpp` ~26 KB → einzeln lesbar (am Limit). Bei Bedarf chunked Read.
-- alle anderen .cpp/.h: < 2 KB
-- Lua-Files: jeweils < 30 KB (vermutlich)
-- SQL-Files: jeweils < 5 KB
+- `ParagonPlayer.cpp` ~26 KB → readable in one piece (at the limit). Use chunked reads if needed.
+- All other .cpp/.h: < 2 KB
+- Lua files: each < 30 KB (presumably)
+- SQL files: each < 5 KB
 
-## Externe Abhängigkeiten
+## External dependencies
 
-- **azerothcore-wotlk** (Core): `PlayerScript`, `UnitScript`, `WorldScript`, `CreatureScript`, Prepared-Statement-API, `sConfigMgr`.
-- **AIO Framework**: `lua_scripts/AIO.lua` + Dependencies aus `share-public/AIO_Server/`.
-- **Custom Spell.dbc**: 17 Big-Stat-Aura-IDs (100201-100227) + 17 Small-Stat-Aura-IDs (100001-100027) müssen in der Server-Spell.dbc existieren.
-- **mod-paragon-itemgen**: liest `character_paragon.level` zur Item-Skalierung.
+- **azerothcore-wotlk** (core): `PlayerScript`, `UnitScript`, `WorldScript`, `CreatureScript`, prepared statement API, `sConfigMgr`.
+- **AIO framework**: `lua_scripts/AIO.lua` + dependencies from `share-public/AIO_Server/`.
+- **Custom Spell.dbc**: 17 big-stat aura IDs (100201-100227) + 17 small-stat aura IDs (100001-100027) must exist in the server Spell.dbc.
+- **mod-paragon-itemgen**: reads `character_paragon.level` for item scaling.
 
-## DB-Tabellen
+## DB tables
 
 ### `acore_characters`
-| Tabelle | PK | Inhalt |
+| Table | PK | Contents |
 |---------|----|--------|
-| `character_paragon` | `accountID` | Account-Level + XP (zählt herunter) |
-| `character_paragon_points` | `characterID` | `unspent_points` + 17 Stat-Spalten |
+| `character_paragon` | `accountID` | Account level + XP (counts down) |
+| `character_paragon_points` | `characterID` | `unspent_points` + 17 stat columns |
 
 ### `acore_world`
-| Tabelle | Inhalt |
+| Table | Contents |
 |---------|--------|
-| `spell_dbc` | DB-Override für Big-Stat-Auras (17 Einträge IDs 100201-100227) |
-| `creature_template` | NPC `npc_paragon` (Entry 900100, ScriptName `npc_paragon`) |
-| `item_template` | Paragon-Punkt-Item (Entry 920920) |
-| `npc_text` | Gossip-Greeting (`197760`) |
+| `spell_dbc` | DB override for big-stat auras (17 entries IDs 100201-100227) |
+| `creature_template` | NPC `npc_paragon` (entry 900100, ScriptName `npc_paragon`) |
+| `item_template` | Paragon point item (entry 920920) |
+| `npc_text` | Gossip greeting (`197760`) |
 
-## Wo ist was nicht?
+## What is not where?
 
-- **Keine Custom-DBC-Files in diesem Repo** — DBC-Patches liegen in `azerothcore-wotlk/share/dbc/Spell.dbc`.
-- **Kein Build-Slot** — wird via AzerothCore Auto-Detection in `modules/` eingebunden.
-- **Keine Unit-Tests** — nur CI-Codestyle.
+- **No custom DBC files in this repo** — DBC patches live in `azerothcore-wotlk/share/dbc/Spell.dbc`.
+- **No build slot** — included in `modules/` via AzerothCore auto-detection.
+- **No unit tests** — only CI codestyle.
