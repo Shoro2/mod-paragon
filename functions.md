@@ -186,7 +186,7 @@ Stat application is C++-only; the Lua side never touches auras directly.
 
 ## Known limitations
 
-- **SQL injection in Lua**: mitigated — numerics are `tonumber`-coerced and `dbColumn` is whitelisted from `Paragon.STATS`. Optional: adopt the shared validation lib (see `todo.md`).
+- **SQL injection in Lua**: mitigated — `AllocatePoint`/`DeallocatePoint` validate `statId`/`amount` via the shared `Dep_Validation` lib (permissive shim fallback if not deployed), numerics are `tonumber`-coerced, and `dbColumn` is whitelisted from `Paragon.STATS`.
 - **Level marker caps at 255**: spell 100000's stack is `uint8`; use `GetParagonLevel(Player*)` for the true level. Cross-module readers must not use `GetAuraCount(100000)`.
 - **No anti-farm measures** — no cooldowns on XP sources, no diminishing returns on repeated kills of the same mob entry.
 

@@ -4,7 +4,7 @@
 
 ## Security
 
-- [ ] **(low)** SQL injection in the Lua layer is now mitigated: `statId` is a whitelisted `STAT_BY_ID` lookup, `amount` is `tonumber`-coerced, `dbColumn` comes only from `Paragon.STATS`, and all interpolated numerics in `Paragon_Data.lua` are wrapped in `tonumber()`. Remaining (optional, defense-in-depth): adopt `share-public/AIO_Server/Dep_Validation/validation.lua` for centralized handler-arg validation.
+- [ ] **(low)** Input validation is wired in: `Paragon_Server.lua` validates `statId` (`Validate.IsIntInRange` 1..#STATS) and `amount` (`Validate.IsPositiveInt`, cap 666) via the shared `share-public/AIO_Server/Dep_Validation/validation.lua`, with a permissive shim fallback + warning if the lib is not deployed. `dbColumn` is whitelisted from `Paragon.STATS` and numerics in `Paragon_Data.lua` are `tonumber`-coerced. **Deploy reminder**: copy `Dep_Validation/` to `lua_scripts/` so the strict (non-shim) checks run.
 
 ## Docs
 
