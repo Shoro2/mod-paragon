@@ -9,157 +9,237 @@
 #include "ParagonUtils.h"
 #include "CharacterDatabase.h"
 #include "Log.h"
+#include "SpellDefines.h"
+#include <array>
 #include <mutex>
 #include <unordered_map>
 
 constexpr uint32 STAT_COUNT = 17;
 
+// Paragon stat indices. This order matches both the DB column order in
+// CHAR_SEL_PARAGON_POINTS and the Lua STATS table.
+enum ParagonStat : uint32
+{
+    PARAGON_STR = 0,
+    PARAGON_INT,
+    PARAGON_AGI,
+    PARAGON_SPI,
+    PARAGON_STA,
+    PARAGON_HASTE,
+    PARAGON_ARMORPEN,
+    PARAGON_SPELLPOWER,
+    PARAGON_CRIT,
+    PARAGON_MOUNTSPEED,
+    PARAGON_MANAREGEN,
+    PARAGON_HIT,
+    PARAGON_BLOCK,
+    PARAGON_EXPERTISE,
+    PARAGON_PARRY,
+    PARAGON_DODGE,
+    PARAGON_LIFELEECH
+};
+
+// Stat value granted per allocated point (unchanged balance). Life Leech is a
+// percentage handled separately in ParagonLifeLeech::OnDamage.
+static uint32 const kPerPoint[STAT_COUNT] =
+{
+    5, 5, 5, 5, 5,   // Str, Int, Agi, Spi, Sta
+    5, 5, 10, 10,    // Haste, ArmorPen, SpellPower, Crit
+    1, 5,            // MountSpeed, ManaRegen
+    10, 4, 3, 10, 10,// Hit, Block, Expertise, Parry, Dodge
+    1                // LifeLeech
+};
+
+// Module primary-stat index (0..4) -> core Stats enum. The module order is
+// Str/Int/Agi/Spi/Sta, which differs from the engine's Stats enum order.
+static Stats const kPrimaryStat[5] =
+{
+    STAT_STRENGTH, STAT_INTELLECT, STAT_AGILITY, STAT_SPIRIT, STAT_STAMINA
+};
+
 // Configuration values (loaded from mod_paragon.conf)
-static bool     conf_Enable       = true;
-static uint32   conf_AuraLevel    = 100000;
-static uint32   conf_PPL          = 5;
-static uint32   conf_MaxLevel     = 0; // 0 = no limit
-static uint32   conf_XPElite      = 1;
-static uint32   conf_XPWorldBoss  = 20;
-static uint32   conf_XPDungeonElite   = 1;
-static uint32   conf_XPDungeonBoss    = 3;
+static bool     conf_Enable          = true;
+static uint32   conf_AuraLevel       = 100000;
+static uint32   conf_MountSpeedSpell = 100029;
+static uint32   conf_PPL             = 5;
+static uint32   conf_MaxLevel        = 666;
+static uint32   conf_XPElite         = 1;
+static uint32   conf_XPWorldBoss     = 20;
+static uint32   conf_XPDungeonElite  = 1;
+static uint32   conf_XPDungeonBoss   = 3;
 static uint32   conf_XPHCDungeonElite = 2;
 static uint32   conf_XPHCDungeonBoss  = 5;
 static uint32   conf_XPRaidBoss       = 10;
 static uint32   conf_XPQuest          = 3;
 static bool     conf_XPPartyReduce    = false;
-static float    conf_LifeLeechPct     = 0.1f; // % heal per stack
+static float    conf_LifeLeechPct     = 0.1f; // % heal per point
 
-// Per-stat max points (configurable, default 666)
-// Stats above 100 use big+small spell pairs to bypass the 255-stack limit.
-static uint32 conf_MaxStats[STAT_COUNT] = {
-    666, 666, 666, 666, 666, // Str, Int, Agi, Spi, Sta
-    666, 666, 666, 666,       // Haste, ArmorPen, SpellPower, Crit
-    666, 666,                 // MountSpeed, ManaRegen
-    666, 666, 666, 666, 666,  // Hit, Block, Expertise, Parry, Dodge
-    666,                      // Life Leech
+// Per-stat max points (configurable, default 666). 0 = no limit.
+static uint32 conf_MaxStats[STAT_COUNT] =
+{
+    666, 666, 666, 666, 666,
+    666, 666, 666, 666,
+    666, 666,
+    666, 666, 666, 666, 666,
+    666
 };
 
-// Stat aura IDs (configurable, defaults match Lua system)
-static uint32 conf_AuraIds[STAT_COUNT] = {
-    100001, // Strength (unified with Lua)
-    100002, // Intellect
-    100003, // Agility
-    100004, // Spirit
-    100005, // Stamina
-    100016, // Haste
-    100017, // Armor Pen
-    100018, // Spell Power
-    100019, // Crit
-    100020, // Mount Speed
-    100021, // Mana Regen
-    100022, // Hit
-    100023, // Block
-    100024, // Expertise
-    100025, // Parry
-    100026, // Dodge
-    100027, // Life Leech
-};
-
-// Big-stat aura IDs: each stack = 100 small stacks.
-// Used when allocated points > 100 to stay within the 255-stack limit.
-// ID scheme: small_aura_id + 200 (100001 -> 100201, etc.)
-static uint32 conf_BigAuraIds[STAT_COUNT] = {
-    100201, 100202, 100203, 100204, 100205,
-    100216, 100217, 100218, 100219,
-    100220, 100221,
-    100222, 100223, 100224, 100225, 100226,
-    100227,
-};
-
-// In-memory cache for paragon level/XP per account
+// In-memory account-wide level/XP cache.
 struct ParagonCache
 {
     uint32 level;
     uint32 xp;
 };
 
-static std::unordered_map<uint32, ParagonCache> sParagonCache;
-static std::mutex sParagonCacheMutex;
+static std::unordered_map<uint32, ParagonCache> sParagonAcct;
+// Exact per-character stat points we last applied (for diff-based reapply and
+// for the Life Leech read in OnDamage). Keyed by player GUID.
+static std::unordered_map<ObjectGuid, std::array<uint32, STAT_COUNT>>
+    sParagonApplied;
+static std::mutex sParagonMutex;
 
 static void CacheSet(uint32 accountId, uint32 level, uint32 xp)
 {
-    std::lock_guard<std::mutex> lock(sParagonCacheMutex);
-    sParagonCache[accountId] = { level, xp };
+    std::lock_guard<std::mutex> lock(sParagonMutex);
+    sParagonAcct[accountId] = { level, xp };
 }
 
 static bool CacheGet(uint32 accountId, ParagonCache& out)
 {
-    std::lock_guard<std::mutex> lock(sParagonCacheMutex);
-    auto it = sParagonCache.find(accountId);
-    if (it == sParagonCache.end())
+    std::lock_guard<std::mutex> lock(sParagonMutex);
+    auto it = sParagonAcct.find(accountId);
+    if (it == sParagonAcct.end())
         return false;
     out = it->second;
     return true;
 }
 
-static void CacheRemove(uint32 accountId)
+// Mount Speed is the only stat backed by an aura. It mirrors the legacy spell:
+// effect 0 = MOD_INCREASE_SPEED (run), effect 1 = MOD_INCREASE_SWIM_SPEED.
+// Applied once with the full value via custom base points (no stacking).
+static void CastParagonMountSpeed(Player* player, uint32 points)
 {
-    std::lock_guard<std::mutex> lock(sParagonCacheMutex);
-    sParagonCache.erase(accountId);
+    int32 amount = static_cast<int32>(points * kPerPoint[PARAGON_MOUNTSPEED]);
+    CustomSpellValues values;
+    values.AddSpellMod(SPELLVALUE_BASE_POINT0, amount);
+    values.AddSpellMod(SPELLVALUE_BASE_POINT1, amount);
+    player->CastCustomSpell(conf_MountSpeedSpell, values, player,
+        TRIGGERED_FULL_MASK);
 }
 
-void RefreshParagonAura(Player* player, uint32 const statValues[STAT_COUNT])
+// Apply or remove a single stat's full value via the cleanest core API.
+// No aura stacking is involved, so the 255-stack ceiling never applies.
+static void ApplyStat(Player* player, uint32 idx, uint32 points, bool apply)
 {
-    // Remove all stat auras (both small and big)
+    if (points == 0)
+        return;
+
+    int32 amount = static_cast<int32>(points * kPerPoint[idx]);
+
+    switch (idx)
+    {
+        case PARAGON_STR:
+        case PARAGON_INT:
+        case PARAGON_AGI:
+        case PARAGON_SPI:
+        case PARAGON_STA:
+        {
+            Stats stat = kPrimaryStat[idx];
+            player->HandleStatFlatModifier(
+                UnitMods(UNIT_MOD_STAT_STRENGTH + stat), BASE_VALUE,
+                static_cast<float>(amount), apply);
+            player->UpdateStatBuffMod(stat);
+            break;
+        }
+        case PARAGON_HASTE:
+            player->ApplyRatingMod(CR_HASTE_MELEE, amount, apply);
+            player->ApplyRatingMod(CR_HASTE_RANGED, amount, apply);
+            player->ApplyRatingMod(CR_HASTE_SPELL, amount, apply);
+            break;
+        case PARAGON_ARMORPEN:
+            player->ApplyRatingMod(CR_ARMOR_PENETRATION, amount, apply);
+            break;
+        case PARAGON_SPELLPOWER:
+            player->ApplySpellPowerBonus(amount, apply);
+            break;
+        case PARAGON_CRIT:
+            player->ApplyRatingMod(CR_CRIT_MELEE, amount, apply);
+            player->ApplyRatingMod(CR_CRIT_RANGED, amount, apply);
+            player->ApplyRatingMod(CR_CRIT_SPELL, amount, apply);
+            break;
+        case PARAGON_MOUNTSPEED:
+            if (apply)
+                CastParagonMountSpeed(player, points);
+            else
+                player->RemoveAura(conf_MountSpeedSpell);
+            break;
+        case PARAGON_MANAREGEN:
+            player->ApplyManaRegenBonus(amount, apply);
+            break;
+        case PARAGON_HIT:
+            player->ApplyRatingMod(CR_HIT_MELEE, amount, apply);
+            player->ApplyRatingMod(CR_HIT_RANGED, amount, apply);
+            player->ApplyRatingMod(CR_HIT_SPELL, amount, apply);
+            break;
+        case PARAGON_BLOCK:
+            player->ApplyRatingMod(CR_BLOCK, amount, apply);
+            break;
+        case PARAGON_EXPERTISE:
+            player->ApplyRatingMod(CR_EXPERTISE, amount, apply);
+            break;
+        case PARAGON_PARRY:
+            player->ApplyRatingMod(CR_PARRY, amount, apply);
+            break;
+        case PARAGON_DODGE:
+            player->ApplyRatingMod(CR_DODGE, amount, apply);
+            break;
+        case PARAGON_LIFELEECH:
+            // No stat to apply: the value is read from the snapshot in
+            // ParagonLifeLeech::OnDamage.
+            break;
+        default:
+            break;
+    }
+}
+
+// Bring the player's applied stats in line with the desired allocation by
+// applying only the delta against the last-applied snapshot. Idempotent.
+void ReapplyParagonStats(Player* player, uint32 const desired[STAT_COUNT])
+{
+    ObjectGuid guid = player->GetGUID();
+
+    std::array<uint32, STAT_COUNT> clamped{};
     for (uint32 i = 0; i < STAT_COUNT; ++i)
     {
-        player->RemoveAura(conf_AuraIds[i]);
-        player->RemoveAura(conf_BigAuraIds[i]);
+        uint32 v = desired[i];
+        if (conf_MaxStats[i] > 0 && v > conf_MaxStats[i])
+            v = conf_MaxStats[i];
+        clamped[i] = v;
     }
 
-    // Apply stats using big+small spell pairs.
-    // Each big stack = 100 small stacks.  Both stay within 255.
+    std::array<uint32, STAT_COUNT> prev{};
+    {
+        std::lock_guard<std::mutex> lock(sParagonMutex);
+        auto it = sParagonApplied.find(guid);
+        if (it != sParagonApplied.end())
+            prev = it->second;
+    }
+
     for (uint32 i = 0; i < STAT_COUNT; ++i)
     {
-        if (statValues[i] == 0)
+        if (clamped[i] == prev[i])
             continue;
-
-        uint32 clamped = statValues[i];
-        if (conf_MaxStats[i] > 0
-            && clamped > conf_MaxStats[i])
-            clamped = conf_MaxStats[i];
-
-        uint32 bigStacks  = clamped / 100;
-        uint32 smallStacks = clamped % 100;
-
-        // Apply big aura (100x value per stack)
-        if (bigStacks > 0)
-        {
-            player->AddAura(conf_BigAuraIds[i], player);
-            if (Aura* aura = player->GetAura(conf_BigAuraIds[i]))
-                aura->SetStackAmount(
-                    static_cast<uint8>(bigStacks));
-            else
-                LOG_ERROR("module.paragon",
-                    "RefreshParagonAura: AddAura({}) failed for "
-                    "player {} (GUID {}), stat {}, big stacks {}",
-                    conf_BigAuraIds[i], player->GetName(),
-                    player->GetGUID().ToString(), i, bigStacks);
-        }
-
-        // Apply small aura (original value per stack)
-        if (smallStacks > 0)
-        {
-            player->AddAura(conf_AuraIds[i], player);
-            if (Aura* aura = player->GetAura(conf_AuraIds[i]))
-                aura->SetStackAmount(
-                    static_cast<uint8>(smallStacks));
-            else
-                LOG_ERROR("module.paragon",
-                    "RefreshParagonAura: AddAura({}) failed for "
-                    "player {} (GUID {}), stat {}, small stacks {}",
-                    conf_AuraIds[i], player->GetName(),
-                    player->GetGUID().ToString(), i, smallStacks);
-        }
+        if (prev[i] > 0)
+            ApplyStat(player, i, prev[i], false);
+        if (clamped[i] > 0)
+            ApplyStat(player, i, clamped[i], true);
     }
+
+    std::lock_guard<std::mutex> lock(sParagonMutex);
+    sParagonApplied[guid] = clamped;
 }
 
+// Read the per-character allocation from the DB and reapply it.
 void ApplyParagonStatEffects(Player* player)
 {
     CharacterDatabasePreparedStatement* stmt =
@@ -180,8 +260,8 @@ void ApplyParagonStatEffects(Player* player)
     uint32 unspentPoints = (*qr)[STAT_COUNT].Get<uint32>();
     uint32 characterID = player->GetGUID().GetCounter();
 
-    // Read paragon level from cache/DB — NOT from aura stack count,
-    // because aura stacks are uint8 and wrap at 256.
+    // Paragon level is account-wide; read it from cache/DB (never from an aura
+    // stack, which is uint8 and caps at 255).
     uint32 accountID = player->GetSession()->GetAccountId();
     uint32 paragonLevel = 0;
     ParagonCache cached;
@@ -192,23 +272,17 @@ void ApplyParagonStatEffects(Player* player)
     else
     {
         CharacterDatabasePreparedStatement* lvlStmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_SEL_PARAGON_LEVEL);
+            CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
         lvlStmt->SetData(0, accountID);
         PreparedQueryResult lvlQr = CharacterDatabase.Query(lvlStmt);
         if (lvlQr)
             paragonLevel = (*lvlQr)[0].Get<uint32>();
     }
 
+    // Defensive: only re-derive unspent_points on mismatch; never wipe the
+    // player's stat allocation.
     if ((totalAllocated + unspentPoints) != paragonLevel * conf_PPL)
     {
-        // Soft-recovery: previously this branch wiped every stat
-        // allocation and forced the player to reallocate. With Lua
-        // now writing stat-column + unspent_points atomically via
-        // a single synchronous CharDBQuery, a transient mismatch on
-        // map change can no longer happen. Defensive path: only
-        // re-derive unspent_points; keep stats untouched so we
-        // never destroy real allocations on a spurious mismatch.
         uint32 totalPoints = paragonLevel * conf_PPL;
         int64 expectedUnspent =
             static_cast<int64>(totalPoints) -
@@ -231,28 +305,69 @@ void ApplyParagonStatEffects(Player* player)
             CharacterDatabasePreparedStatement* setStmt =
                 CharacterDatabase.GetPreparedStatement(
                     CHAR_UPD_PARAGON_UNSPENT_SET);
-            setStmt->SetData(0,
-                static_cast<uint32>(expectedUnspent));
+            setStmt->SetData(0, static_cast<uint32>(expectedUnspent));
             setStmt->SetData(1, characterID);
             CharacterDatabase.Execute(setStmt);
         }
-        // No early return: still apply auras for the (kept) stats.
     }
 
-    RefreshParagonAura(player, statValues);
+    ReapplyParagonStats(player, statValues);
 }
 
-// Restore paragon aura from cache (no DB query)
-static void RestoreFromCache(Player* player, uint32 accountID)
+// Remove every applied paragon stat (used by the NPC reset). Applies zero
+// directly, so it does not depend on the async reset DB write being visible.
+void ClearParagonStats(Player* player)
 {
-    ParagonCache cached;
-    if (CacheGet(accountID, cached) && cached.level > 0)
+    uint32 zeros[STAT_COUNT] = {};
+    ReapplyParagonStats(player, zeros);
+}
+
+// Remove any legacy stacking auras left over from the previous design (and
+// from character_aura on first login after the upgrade).
+static void RemoveLegacyParagonAuras(Player* player)
+{
+    for (uint32 id = 100001; id <= 100005; ++id)
+        player->RemoveAura(id);
+    for (uint32 id = 100016; id <= 100027; ++id)
+        player->RemoveAura(id);
+    for (uint32 id = 100201; id <= 100227; ++id)
+        player->RemoveAura(id);
+}
+
+// The mount-speed bonus is the only stat backed by an aura. Re-assert it if a
+// game event stripped it; uses the snapshot, so no DB query is needed.
+static void EnsureParagonAuras(Player* player)
+{
+    uint32 points = 0;
     {
-        player->AddAura(conf_AuraLevel, player);
-        player->SetAuraStack(conf_AuraLevel, player,
-            std::min(cached.level, static_cast<uint32>(255)));
-        ApplyParagonStatEffects(player);
+        std::lock_guard<std::mutex> lock(sParagonMutex);
+        auto it = sParagonApplied.find(player->GetGUID());
+        if (it != sParagonApplied.end())
+            points = it->second[PARAGON_MOUNTSPEED];
     }
+
+    if (points > 0 && !player->HasAura(conf_MountSpeedSpell))
+        CastParagonMountSpeed(player, points);
+}
+
+// True paragon level (up to conf_MaxLevel), readable by other modules instead
+// of GetAuraCount(100000), which caps at 255.
+uint32 GetParagonLevel(Player* player)
+{
+    if (!player)
+        return 0;
+
+    uint32 accountID = player->GetSession()->GetAccountId();
+    ParagonCache cached;
+    if (CacheGet(accountID, cached))
+        return cached.level;
+
+    CharacterDatabasePreparedStatement* stmt =
+        CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
+    stmt->SetData(0, accountID);
+    if (PreparedQueryResult qr = CharacterDatabase.Query(stmt))
+        return (*qr)[0].Get<uint32>();
+    return 0;
 }
 
 class ParagonPlayer : public PlayerScript
@@ -268,9 +383,12 @@ public:
         uint32 accountID = player->GetSession()->GetAccountId();
         uint32 characterID = player->GetGUID().GetCounter();
 
+        // Purge any saved stacking auras from the old design before applying
+        // the new modifiers, so nothing double-counts.
+        RemoveLegacyParagonAuras(player);
+
         CharacterDatabasePreparedStatement* stmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_SEL_PARAGON_LEVEL_XP);
+            CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL_XP);
         stmt->SetData(0, accountID);
         PreparedQueryResult qr = CharacterDatabase.Query(stmt);
 
@@ -285,8 +403,7 @@ public:
                 std::min(paragonLevel, static_cast<uint32>(255)));
 
             CharacterDatabasePreparedStatement* ptsStmt =
-                CharacterDatabase.GetPreparedStatement(
-                    CHAR_SEL_PARAGON_POINTS);
+                CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_POINTS);
             ptsStmt->SetData(0, characterID);
             PreparedQueryResult ptsQr = CharacterDatabase.Query(ptsStmt);
             if (!ptsQr)
@@ -306,8 +423,7 @@ public:
             insParagon->SetData(0, accountID);
             CharacterDatabase.Execute(insParagon);
             CharacterDatabasePreparedStatement* insPoints =
-                CharacterDatabase.GetPreparedStatement(
-                    CHAR_INS_PARAGON_POINTS);
+                CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON_POINTS);
             insPoints->SetData(0, characterID);
             CharacterDatabase.Execute(insPoints);
             CacheSet(accountID, 0, 0);
@@ -319,12 +435,18 @@ public:
         if (!conf_Enable)
             return;
 
-        uint32 accountID = player->GetSession()->GetAccountId();
+        // Direct stat modifiers persist across map changes (the Player object
+        // is not recreated); only the mount-speed aura may need re-asserting.
+        EnsureParagonAuras(player);
+    }
 
-        if (!player->HasAura(conf_AuraLevel))
-            RestoreFromCache(player, accountID);
-        else
-            ApplyParagonStatEffects(player);
+    void OnPlayerResurrect(Player* player, float /*restorePercent*/,
+                           bool /*applySickness*/) override
+    {
+        if (!conf_Enable)
+            return;
+
+        EnsureParagonAuras(player);
     }
 
     void OnPlayerLevelChanged(Player* player,
@@ -340,15 +462,13 @@ public:
             uint32 accountID = player->GetSession()->GetAccountId();
 
             CharacterDatabasePreparedStatement* stmt =
-                CharacterDatabase.GetPreparedStatement(
-                    CHAR_SEL_PARAGON_LEVEL);
+                CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL);
             stmt->SetData(0, accountID);
             PreparedQueryResult qr = CharacterDatabase.Query(stmt);
             if (!qr)
             {
                 CharacterDatabasePreparedStatement* insParagon =
-                    CharacterDatabase.GetPreparedStatement(
-                        CHAR_INS_PARAGON);
+                    CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON);
                 insParagon->SetData(0, accountID);
                 CharacterDatabase.Execute(insParagon);
                 CharacterDatabasePreparedStatement* insPoints =
@@ -367,7 +487,9 @@ public:
             return;
 
         uint32 accountID = player->GetSession()->GetAccountId();
-        CacheRemove(accountID);
+        std::lock_guard<std::mutex> lock(sParagonMutex);
+        sParagonAcct.erase(accountID);
+        sParagonApplied.erase(player->GetGUID());
     }
 
     void OnPlayerCompleteQuest(Player* player,
@@ -463,8 +585,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
     else
     {
         CharacterDatabasePreparedStatement* stmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_SEL_PARAGON_LEVEL_XP);
+            CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL_XP);
         stmt->SetData(0, accountID);
         PreparedQueryResult qr = CharacterDatabase.Query(stmt);
         if (!qr)
@@ -498,8 +619,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
         uint32 newLevel = paragonLevel + 1;
 
         CharacterDatabasePreparedStatement* updStmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_UPD_PARAGON_LEVELUP);
+            CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_LEVELUP);
         updStmt->SetData(0, static_cast<uint32>(newXP));
         updStmt->SetData(1, accountID);
         CharacterDatabase.Execute(updStmt);
@@ -513,8 +633,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
         ss << "Congratulations " << player->GetName()
            << "! You increased your Paragon level to "
            << newLevel << ".";
-        ChatHandler(player->GetSession()).SendSysMessage(
-            ss.str().c_str());
+        ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
 
         uint32 characterID = player->GetGUID().GetCounter();
         CharacterDatabasePreparedStatement* ptsStmt =
@@ -529,8 +648,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
         uint32 newXP = paragonXP - value;
 
         CharacterDatabasePreparedStatement* updStmt =
-            CharacterDatabase.GetPreparedStatement(
-                CHAR_UPD_PARAGON_XP);
+            CharacterDatabase.GetPreparedStatement(CHAR_UPD_PARAGON_XP);
         updStmt->SetData(0, value);
         updStmt->SetData(1, accountID);
         CharacterDatabase.Execute(updStmt);
@@ -542,8 +660,7 @@ void IncreaseParagonXP(Player* player, uint32 value)
             std::ostringstream ss;
             ss << "Increasing Paragon XP by " << value << ". "
                << newXP << " needed to level up.";
-            ChatHandler(player->GetSession()).SendSysMessage(
-                ss.str().c_str());
+            ChatHandler(player->GetSession()).SendSysMessage(ss.str().c_str());
         }
     }
 }
@@ -559,10 +676,12 @@ public:
             "Paragon.Enable", true);
         conf_AuraLevel = sConfigMgr->GetOption<uint32>(
             "Paragon.IdLevel", 100000);
+        conf_MountSpeedSpell = sConfigMgr->GetOption<uint32>(
+            "Paragon.MountSpeedSpellId", 100029);
         conf_PPL = sConfigMgr->GetOption<uint32>(
             "Paragon.PPL", 5);
         conf_MaxLevel = sConfigMgr->GetOption<uint32>(
-            "Paragon.MaxLevel", 0);
+            "Paragon.MaxLevel", 666);
         conf_XPElite = sConfigMgr->GetOption<uint32>(
             "Paragon.XPElite", 1);
         conf_XPWorldBoss = sConfigMgr->GetOption<uint32>(
@@ -581,116 +700,42 @@ public:
             "Paragon.XPQuest", 3);
         conf_XPPartyReduce = sConfigMgr->GetOption<bool>(
             "Paragon.XPPartyReduce", false);
-
-        // Stat aura IDs
-        conf_AuraIds[0]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdStr", 100001);
-        conf_AuraIds[1]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdInt", 100002);
-        conf_AuraIds[2]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdAgi", 100003);
-        conf_AuraIds[3]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdSpi", 100004);
-        conf_AuraIds[4]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdSta", 100005);
-        conf_AuraIds[5]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdHaste", 100016);
-        conf_AuraIds[6]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdArmorPen", 100017);
-        conf_AuraIds[7]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdSpellPower", 100018);
-        conf_AuraIds[8]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdCrit", 100019);
-        conf_AuraIds[9]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdMountSpeed", 100020);
-        conf_AuraIds[10] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdManaRegen", 100021);
-        conf_AuraIds[11] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdHit", 100022);
-        conf_AuraIds[12] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBlock", 100023);
-        conf_AuraIds[13] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdExpertise", 100024);
-        conf_AuraIds[14] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdParry", 100025);
-        conf_AuraIds[15] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdDodge", 100026);
-        conf_AuraIds[16] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdLifeLeech", 100027);
         conf_LifeLeechPct = sConfigMgr->GetOption<float>(
             "Paragon.LifeLeechPct", 0.1f);
 
-        // Big-stat aura IDs (each stack = 100 small stacks)
-        // Default: small aura ID + 200
-        conf_BigAuraIds[0]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigStr", 100201);
-        conf_BigAuraIds[1]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigInt", 100202);
-        conf_BigAuraIds[2]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigAgi", 100203);
-        conf_BigAuraIds[3]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigSpi", 100204);
-        conf_BigAuraIds[4]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigSta", 100205);
-        conf_BigAuraIds[5]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigHaste", 100216);
-        conf_BigAuraIds[6]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigArmorPen", 100217);
-        conf_BigAuraIds[7]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigSpellPower", 100218);
-        conf_BigAuraIds[8]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigCrit", 100219);
-        conf_BigAuraIds[9]  = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigMountSpeed", 100220);
-        conf_BigAuraIds[10] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigManaRegen", 100221);
-        conf_BigAuraIds[11] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigHit", 100222);
-        conf_BigAuraIds[12] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigBlock", 100223);
-        conf_BigAuraIds[13] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigExpertise", 100224);
-        conf_BigAuraIds[14] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigParry", 100225);
-        conf_BigAuraIds[15] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigDodge", 100226);
-        conf_BigAuraIds[16] = sConfigMgr->GetOption<uint32>(
-            "Paragon.IdBigLifeLeech", 100227);
-
-        // Per-stat max points
-        conf_MaxStats[0]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_STR] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxStr", 666);
-        conf_MaxStats[1]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_INT] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxInt", 666);
-        conf_MaxStats[2]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_AGI] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxAgi", 666);
-        conf_MaxStats[3]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_SPI] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxSpi", 666);
-        conf_MaxStats[4]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_STA] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxSta", 666);
-        conf_MaxStats[5]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_HASTE] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxHaste", 666);
-        conf_MaxStats[6]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_ARMORPEN] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxArmorPen", 666);
-        conf_MaxStats[7]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_SPELLPOWER] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxSpellPower", 666);
-        conf_MaxStats[8]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_CRIT] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxCrit", 666);
-        conf_MaxStats[9]  = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_MOUNTSPEED] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxMountSpeed", 666);
-        conf_MaxStats[10] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_MANAREGEN] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxManaRegen", 666);
-        conf_MaxStats[11] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_HIT] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxHit", 666);
-        conf_MaxStats[12] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_BLOCK] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxBlock", 666);
-        conf_MaxStats[13] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_EXPERTISE] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxExpertise", 666);
-        conf_MaxStats[14] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_PARRY] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxParry", 666);
-        conf_MaxStats[15] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_DODGE] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxDodge", 666);
-        conf_MaxStats[16] = sConfigMgr->GetOption<uint32>(
+        conf_MaxStats[PARAGON_LIFELEECH] = sConfigMgr->GetOption<uint32>(
             "Paragon.MaxLifeLeech", 666);
     }
 };
@@ -708,33 +753,31 @@ public:
         if (!conf_Enable || !attacker || !victim || damage == 0)
             return;
 
-        // Resolve to the player owner so pet/totem/mind-control
-        // damage also triggers leech. Without this, caster specs
-        // whose main damage comes from a pet (Demonology Warlock,
-        // Frost Mage, BM Hunter) or totems (every Shaman spec) get
-        // no leech at all.
+        // Resolve to the player owner so pet/totem/mind-control damage also
+        // triggers leech (Demonology Warlock, Frost Mage, BM Hunter, Shaman
+        // totems, etc.).
         Player* player =
             attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
         if (!player)
             return;
 
-        // Skip self/friendly-controlled damage (fall, environmental,
-        // own spell splash) — never heal off your own HP loss.
+        // Skip self/friendly-controlled damage (fall, environmental, own
+        // spell splash) — never heal off your own HP loss.
         if (victim == player ||
             victim->GetCharmerOrOwnerPlayerOrPlayerItself() == player)
             return;
 
-        // Read life leech stacks from both big and small auras
         uint32 leechPoints = 0;
-        if (Aura* bigAura = player->GetAura(conf_BigAuraIds[16]))
-            leechPoints += bigAura->GetStackAmount() * 100;
-        if (Aura* smallAura = player->GetAura(conf_AuraIds[16]))
-            leechPoints += smallAura->GetStackAmount();
+        {
+            std::lock_guard<std::mutex> lock(sParagonMutex);
+            auto it = sParagonApplied.find(player->GetGUID());
+            if (it != sParagonApplied.end())
+                leechPoints = it->second[PARAGON_LIFELEECH];
+        }
 
         if (leechPoints == 0)
             return;
 
-        // heal = damage * points * pct / 100
         float healPct = leechPoints * conf_LifeLeechPct;
         uint32 healAmount =
             static_cast<uint32>(damage * healPct / 100.0f);

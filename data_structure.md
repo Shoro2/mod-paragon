@@ -11,16 +11,17 @@ mod-paragon/
 ├── data/sql/
 │   ├── db-auth/                                       # (possibly empty / reserved)
 │   ├── db-characters/                                 # Character schema (paragon tables)
-│   └── db-world/                                      # World schema (big-stat spells, NPC, item)
+│   └── db-world/                                      # World schema (spells, NPC, item)
 ├── Paragon_System_LUA/
-│   ├── Paragon_Server.lua                             # AIO server: Allocate/Deallocate/Reset, ApplyStatAuras
+│   ├── Paragon_Server.lua                             # AIO server: Allocate/Deallocate; casts reapply trigger
 │   ├── Paragon_Client.lua                             # AIO client: frame, stat rows, tabs, +/- buttons
 │   └── Paragon_Data.lua                               # Stat definitions, MAX_POINTS, sound IDs, DB helpers
 ├── src/
-│   ├── Paragon_loader.cpp                             # Loader: Addmod_paragonScripts() (~550 B)
-│   ├── ParagonPlayer.cpp                              # Main logic: PlayerScript+UnitScript+WorldScript (~26 KB)
-│   ├── ParagonNPC.cpp                                 # CreatureScript for npc_paragon (~1.8 KB)
-│   └── ParagonUtils.h                                 # Header (~200 B)
+│   ├── Paragon_loader.cpp                             # Loader: Addmod_paragonScripts()
+│   ├── ParagonPlayer.cpp                              # Main logic: PlayerScript+UnitScript+WorldScript
+│   ├── ParagonReapply.cpp                             # SpellScript 100028 (Lua→C++ reapply bridge)
+│   ├── ParagonNPC.cpp                                 # CreatureScript for npc_paragon
+│   └── ParagonUtils.h                                 # Header (function declarations)
 ├── apps/ci/ci-codestyle.sh                            # CI codestyle validation
 ├── include.sh                                          # Build integration
 ├── pull_request_template.md                            # GitHub PR template
@@ -34,19 +35,24 @@ mod-paragon/
 
 | File | Purpose |
 |-------|-------|
-| `conf/mod_paragon.conf.dist` | 30+ options: aura IDs (small/big), big-aura IDs (`Paragon.IdBig*`), MaxStats[17], MaxLevel, XP rewards, PartyReduce |
+| `conf/mod_paragon.conf.dist` | options: `IdLevel`, `MountSpeedSpellId`, MaxStats[17], MaxLevel (666), XP rewards, LifeLeechPct |
 | `data/sql/db-characters/base/character_paragon_create.sql` | Account level/XP table |
 | `data/sql/db-characters/base/character_paragon_points_create.sql` | Per-character stat allocation (17 columns) |
 | `data/sql/db-characters/updates/add_plifeleech_column.sql` | Migration for the Life Leech column |
+| `data/sql/db-characters/updates/remove_legacy_stat_auras.sql` | Purge saved legacy stat auras from `character_aura` |
 | `data/sql/db-world/base/paragon_currency_item.sql` | Item template for Paragon points (item 920920) |
-| `data/sql/db-world/base/paragon_big_stat_spells.sql` | 17 spell_dbc inserts for big-stat auras (IDs 100201-100227) |
-| `Paragon_System_LUA/Paragon_Data.lua` | Data model: 17 stat definitions with `auraId`, `bigAuraId`, category, tooltip; `MAX_POINTS` table |
-| `Paragon_System_LUA/Paragon_Server.lua` | AIO handlers: `RequestData`, `AllocatePoint`, `DeallocatePoint`; `ApplyStatAuras` helper |
+| `data/sql/db-world/base/paragon_fix_strength_spell.sql` | Removes a bad `spell_dbc` override of 100001 |
+| `data/sql/db-world/base/paragon_mountspeed_spell.sql` | spell_dbc 100029 (Mount Speed aura: run + swim) |
+| `data/sql/db-world/base/paragon_reapply_spell.sql` | spell_dbc 100028 + `spell_script_names` (reapply trigger) |
+| `data/sql/db-world/updates/remove_legacy_stat_spells.sql` | Drops obsolete `spell_dbc` rows (100201-100227, 100027) |
+| `Paragon_System_LUA/Paragon_Data.lua` | Data model: 17 stat definitions (`dbColumn`, `maxPoints`, …), `REAPPLY_SPELL`, `MAX_POINTS`, DB helpers |
+| `Paragon_System_LUA/Paragon_Server.lua` | AIO handlers: `RequestData`, `AllocatePoint`, `DeallocatePoint` (cast reapply trigger after DB write) |
 | `Paragon_System_LUA/Paragon_Client.lua` | UI: `ParagonFrame`, category tabs, stat rows, +/- buttons (Shift = ×10), ESC menu button |
-| `src/Paragon_loader.cpp` | `Addmod_paragonScripts()` calls `AddParagonPlayerScripts`, `AddMyNPCScripts`, `AddParagonConfigScripts` |
-| `src/ParagonPlayer.cpp` | contains `ParagonPlayer` (PlayerScript), `ParagonLifeLeech` (UnitScript), `ParagonConfig` (WorldScript), cache map |
+| `src/Paragon_loader.cpp` | `Addmod_paragonScripts()` calls `AddParagonPlayerScripts`, `AddMyNPCScripts`, `AddParagonReapplyScripts` |
+| `src/ParagonPlayer.cpp` | `ParagonPlayer` (PlayerScript), `ParagonLifeLeech` (UnitScript), `ParagonConfig` (WorldScript); direct stat APIs + caches |
+| `src/ParagonReapply.cpp` | `spell_paragon_reapply` SpellScript: re-applies stats on cast of 100028 |
 | `src/ParagonNPC.cpp` | CreatureScript `npc_paragon`: gossip "Info / Reset" |
-| `src/ParagonUtils.h` | Forward declarations |
+| `src/ParagonUtils.h` | Forward declarations (`ApplyParagonStatEffects`, `ReapplyParagonStats`, `ClearParagonStats`, `GetParagonLevel`, `IncreaseParagonXP`) |
 | `apps/ci/ci-codestyle.sh` | Codestyle CI check (4-space, LF, type position, etc.) |
 
 ## Size notes (as of 2026-05-01)
@@ -60,7 +66,7 @@ mod-paragon/
 
 - **azerothcore-wotlk** (core): `PlayerScript`, `UnitScript`, `WorldScript`, `CreatureScript`, prepared statement API, `sConfigMgr`.
 - **AIO framework**: `lua_scripts/AIO.lua` + dependencies from `share-public/AIO_Server/`.
-- **Custom Spell.dbc**: 17 big-stat aura IDs (100201-100227) + 17 small-stat aura IDs (100001-100027) must exist in the server Spell.dbc.
+- **Custom Spell.dbc**: only the level marker 100000 is still used from the binary Spell.dbc. Stats are applied via direct core APIs; Mount Speed (100029) and the reapply trigger (100028) are server-side `spell_dbc` rows (no client DBC entry needed).
 - **mod-paragon-itemgen**: reads `character_paragon.level` for item scaling.
 
 ## DB tables
@@ -74,7 +80,8 @@ mod-paragon/
 ### `acore_world`
 | Table | Contents |
 |---------|--------|
-| `spell_dbc` | DB override for big-stat auras (17 entries IDs 100201-100227) |
+| `spell_dbc` | Server-side spells 100028 (reapply trigger) + 100029 (Mount Speed) |
+| `spell_script_names` | Binds 100028 → `spell_paragon_reapply` |
 | `creature_template` | NPC `npc_paragon` (entry 900100, ScriptName `npc_paragon`) |
 | `item_template` | Paragon point item (entry 920920) |
 | `npc_text` | Gossip greeting (`197760`) |

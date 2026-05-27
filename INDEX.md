@@ -9,7 +9,7 @@ Entry point for AI tools.
 | `INDEX.md` | <1 KB | this file — navigation |
 | `CLAUDE.md` | ~5 KB | **What** this module is, what role, which IDs/DB tables |
 | `data_structure.md` | ~5 KB | Folder/file listing (Lua + C++ + SQL) |
-| `functions.md` | ~8 KB | **How**: aura refresh, XP logic, big+small pair mechanic, AIO handlers, config |
+| `functions.md` | ~8 KB | **How**: stat application (direct core APIs), XP logic, AIO handlers, config |
 | `log.md` | ~2 KB | Commit log |
 | `todo.md` | ~1 KB | open tasks |
 
@@ -24,7 +24,7 @@ Entry point for AI tools.
 ## Quick Facts
 
 - Post-LV80 account XP system with 17 distributable stats
-- Hybrid: C++ aura layer + Lua/AIO UI on the same DB
+- C++ applies stats via direct core APIs (single source of truth); Lua/AIO is the allocation UI
 - DB: 2 tables in `acore_characters` (`character_paragon`, `character_paragon_points`)
-- ~30 config options in `mod_paragon.conf` (aura IDs, max stats[17], level cap, XP rewards)
+- Config in `mod_paragon.conf` (level/mount-speed spell IDs, max stats[17], level cap 666, XP rewards, LifeLeechPct)
 - Provides the foundation for `mod-paragon-itemgen` (which reads the Paragon level to enchant items)

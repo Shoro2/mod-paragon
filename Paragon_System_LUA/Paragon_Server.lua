@@ -2,46 +2,18 @@
     Paragon System - Server Handlers
     Handles point allocation/deallocation and data sync.
     This file is server-only (no AIO.AddAddon).
+
+    Stat application lives entirely in C++ (single source of truth). After a DB
+    write, we cast the hidden reapply-trigger spell so the C++ SpellScript
+    re-derives and applies the player's stats.
 ]]
 
 local AIO = AIO or require("AIO")
 
 local Handlers = AIO.AddHandlers("PARAGON_SERVER", {})
 
---- Apply big+small aura pair for a stat.
--- Each big stack = 100 small stacks, staying within the 255-stack limit.
--- @param player  Player object
--- @param stat    Stat table (must have auraId and bigAuraId)
--- @param value   Total allocated points (0 to remove)
-local function ApplyStatAuras(player, stat, value)
-	-- Always remove both auras first
-	player:RemoveAura(stat.auraId)
-	player:RemoveAura(stat.bigAuraId)
-
-	if value <= 0 then return end
-
-	local bigStacks  = math.floor(value / 100)
-	local smallStacks = value % 100
-
-	if bigStacks > 0 then
-		player:AddAura(stat.bigAuraId, player)
-		local aura = player:GetAura(stat.bigAuraId)
-		if aura then
-			aura:SetStackAmount(bigStacks)
-		end
-	end
-
-	if smallStacks > 0 then
-		player:AddAura(stat.auraId, player)
-		local aura = player:GetAura(stat.auraId)
-		if aura then
-			aura:SetStackAmount(smallStacks)
-		end
-	end
-end
-
 --- Build the serializable stats/categories config to send to the client.
--- Strips server-only fields (dbColumn, auraId) from the data.
+-- Strips server-only fields (dbColumn) from the data.
 local function BuildClientConfig()
 	local categories = {}
 	for _, cat in ipairs(Paragon.CATEGORIES) do
@@ -114,15 +86,14 @@ function Handlers.AllocatePoint(player, statId, amount)
 	if amount > maxCanAllocate then amount = maxCanAllocate end
 	if amount > unspent then amount = unspent end
 
-	-- Apply big+small aura pair
 	local newValue = current + amount
-	ApplyStatAuras(player, stat, newValue)
-
-	-- Atomic + synchronous DB write so that a quick map change cannot
-	-- observe a half-applied update (stat written, unspent not yet, or
-	-- vice versa) and trigger the C++ integrity-mismatch path.
 	local newUnspent = unspent - amount
+
+	-- Atomic synchronous DB write first, then trigger the C++ reapply so it
+	-- reads a consistent row. C++ owns stat application.
 	Paragon.UpdateAllocationAndUnspent(characterID, stat.dbColumn, newValue, newUnspent)
+	player:CastSpell(player, Paragon.REAPPLY_SPELL, true)
+
 	allocations[statId] = newValue
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
 		allocations, newUnspent)
@@ -154,13 +125,13 @@ function Handlers.DeallocatePoint(player, statId, amount)
 	-- Clamp amount to current allocation
 	if amount > current then amount = current end
 
-	-- Apply big+small aura pair (or remove if zero)
 	local newValue = current - amount
-	ApplyStatAuras(player, stat, newValue)
-
-	-- Atomic + synchronous DB write (see AllocatePoint for rationale).
 	local newUnspent = unspent + amount
+
+	-- Atomic synchronous DB write first, then trigger the C++ reapply.
 	Paragon.UpdateAllocationAndUnspent(characterID, stat.dbColumn, newValue, newUnspent)
+	player:CastSpell(player, Paragon.REAPPLY_SPELL, true)
+
 	allocations[statId] = newValue
 	AIO.Handle(player, "PARAGON_CLIENT", "UpdatePoints",
 		allocations, newUnspent)

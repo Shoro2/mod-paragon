@@ -54,7 +54,9 @@ public:
         stmt->SetData(0, characterID);
         CharacterDatabase.Execute(stmt);
 
-        ApplyParagonStatEffects(player);
+        // Apply zero directly (race-free): the reset write above is async, so
+        // re-reading the DB here could observe the pre-reset row.
+        ClearParagonStats(player);
         ChatHandler(player->GetSession()).SendSysMessage(
             "Your Paragon points have been reset.");
     }

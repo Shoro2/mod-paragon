@@ -15,52 +15,21 @@ Paragon.Enable = 1
 ########################################
 # Spell / Aura IDs
 ########################################
-
-Paragon.IdLevel     = 100000
-Paragon.IdStr       = 100001
-Paragon.IdInt       = 100002
-Paragon.IdAgi       = 100003
-Paragon.IdSpi       = 100004
-Paragon.IdSta       = 100005
-Paragon.IdHaste     = 100016
-Paragon.IdArmorPen  = 100017
-Paragon.IdSpellPower = 100018
-Paragon.IdCrit      = 100019
-Paragon.IdMountSpeed = 100020
-Paragon.IdManaRegen = 100021
-Paragon.IdHit       = 100022
-Paragon.IdBlock     = 100023
-Paragon.IdExpertise = 100024
-Paragon.IdParry     = 100025
-Paragon.IdDodge     = 100026
-Paragon.IdLifeLeech = 100027
-
-########################################
-# Big-Stat Aura IDs (each stack = 100x)
-########################################
 #
-#    Used when allocated points > 100 to stay within the 255-stack
-#    aura limit.  Each big aura stack represents 100 small stacks.
-#    Default: small aura ID + 200
+#    Paragon.IdLevel            Level marker aura (also the "has paragon" flag).
+#                               Its stack is shown to the client capped at 255;
+#                               the true level (up to MaxLevel) is tracked in
+#                               the DB / cache.
+#    Paragon.MountSpeedSpellId  Server-side Mount Speed aura (run + swim speed),
+#                               applied once with the full value (no stacking).
+#
+#    Stats are applied directly via the core stat APIs (no per-stat aura IDs).
+#    The Lua/AIO layer casts the reapply-trigger spell 100028 after a point
+#    allocation; that link lives in spell_script_names (DB), not here.
 #
 
-Paragon.IdBigStr        = 100201
-Paragon.IdBigInt        = 100202
-Paragon.IdBigAgi        = 100203
-Paragon.IdBigSpi        = 100204
-Paragon.IdBigSta        = 100205
-Paragon.IdBigHaste      = 100216
-Paragon.IdBigArmorPen   = 100217
-Paragon.IdBigSpellPower = 100218
-Paragon.IdBigCrit       = 100219
-Paragon.IdBigMountSpeed = 100220
-Paragon.IdBigManaRegen  = 100221
-Paragon.IdBigHit        = 100222
-Paragon.IdBigBlock      = 100223
-Paragon.IdBigExpertise  = 100224
-Paragon.IdBigParry      = 100225
-Paragon.IdBigDodge      = 100226
-Paragon.IdBigLifeLeech  = 100227
+Paragon.IdLevel           = 100000
+Paragon.MountSpeedSpellId  = 100029
 
 ########################################
 # Points per Level
@@ -95,8 +64,7 @@ Paragon.XPPartyReduce = 0
 ########################################
 #
 #    Maximum number of points a player can allocate into each
-#    individual paragon stat.  Set to 0 for no limit (capped only
-#    by aura stack size).
+#    individual paragon stat.  Set to 0 for no limit.
 #
 
 Paragon.MaxStr        = 666
@@ -121,6 +89,6 @@ Paragon.MaxLifeLeech  = 666
 # Life Leech
 ########################################
 
-# Percentage of damage healed per Life Leech stack.
-# Example: 0.1 = 0.1% per stack, so 100 stacks = 10% life leech
+# Percentage of damage healed per Life Leech point.
+# Example: 0.1 = 0.1% per point, so 100 points = 10% life leech
 Paragon.LifeLeechPct = 0.1

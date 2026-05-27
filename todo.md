@@ -4,7 +4,7 @@
 
 ## Security
 
-- [ ] **(medium)** SQL injection risk in the Lua layer: `Paragon_Server.lua` uses `CharDBExecute` with string concatenation (Eluna without prepared statements). Validate all handler args explicitly — particularly `statId` (integer whitelist 1..17), `amount` (positive integer with cap). The validation lib is available since 2026-05 in `share-public/AIO_Server/Dep_Validation/validation.lua`.
+- [ ] **(low)** SQL injection in the Lua layer is now mitigated: `statId` is a whitelisted `STAT_BY_ID` lookup, `amount` is `tonumber`-coerced, `dbColumn` comes only from `Paragon.STATS`, and all interpolated numerics in `Paragon_Data.lua` are wrapped in `tonumber()`. Remaining (optional, defense-in-depth): adopt `share-public/AIO_Server/Dep_Validation/validation.lua` for centralized handler-arg validation.
 
 ## Docs
 
