@@ -12,6 +12,11 @@ Paragon = Paragon or {}
 Paragon.CURRENCY_NAME = "Paragon Points"
 Paragon.CURRENCY_ICON = "Interface/Icons/INV_Misc_Gem_Bloodstone_01"
 
+-- Hidden trigger spell cast after a point allocation. Its C++ SpellScript
+-- (spell_paragon_reapply) re-applies the player's stats. Stats are applied
+-- in C++ only; the Lua layer no longer touches auras directly.
+Paragon.REAPPLY_SPELL = 100028
+
 -- Max points per stat (must match mod_paragon.conf Paragon.Max* values)
 Paragon.MAX_POINTS = {
 	Strength       = 666,
@@ -57,9 +62,9 @@ Paragon.CATEGORIES = {
 	},
 }
 
--- Stat definitions: all 17 paragon stats
--- Each stat has: id, name, tooltip, icon, auraId, bigAuraId, dbColumn, maxPoints, categoryId
--- bigAuraId = "x100" version of the spell, used when allocation > 100.
+-- Stat definitions: all 17 paragon stats.
+-- Each stat has: id, name, tooltip, icon, dbColumn, maxPoints, categoryId.
+-- Stats are applied in C++ via direct core APIs (no per-stat aura IDs here).
 Paragon.STATS = {
 	-- Primary Stats (Category 1)
 	{
@@ -67,8 +72,6 @@ Paragon.STATS = {
 		name = "Strength",
 		tooltip = "Increases melee attack power and block value.",
 		icon = "Interface/Icons/Spell_Holy_FistOfJustice",
-		auraId = 100001,
-		bigAuraId = 100201,
 		dbColumn = "pstrength",
 		maxPoints = Paragon.MAX_POINTS.Strength,
 		categoryId = 1,
@@ -78,8 +81,6 @@ Paragon.STATS = {
 		name = "Intellect",
 		tooltip = "Increases mana pool and spell critical strike chance.",
 		icon = "Interface/Icons/Spell_Holy_MagicalSentry",
-		auraId = 100002,
-		bigAuraId = 100202,
 		dbColumn = "pintellect",
 		maxPoints = Paragon.MAX_POINTS.Intellect,
 		categoryId = 1,
@@ -89,8 +90,6 @@ Paragon.STATS = {
 		name = "Agility",
 		tooltip = "Increases ranged attack power, armor, and dodge chance.",
 		icon = "Interface/Icons/Ability_Rogue_Eviscerate",
-		auraId = 100003,
-		bigAuraId = 100203,
 		dbColumn = "pagility",
 		maxPoints = Paragon.MAX_POINTS.Agility,
 		categoryId = 1,
@@ -100,8 +99,6 @@ Paragon.STATS = {
 		name = "Spirit",
 		tooltip = "Increases health and mana regeneration.",
 		icon = "Interface/Icons/Spell_Shadow_Requiem",
-		auraId = 100004,
-		bigAuraId = 100204,
 		dbColumn = "pspirit",
 		maxPoints = Paragon.MAX_POINTS.Spirit,
 		categoryId = 1,
@@ -111,8 +108,6 @@ Paragon.STATS = {
 		name = "Stamina",
 		tooltip = "Increases maximum health.",
 		icon = "Interface/Icons/Spell_Holy_WordFortitude",
-		auraId = 100005,
-		bigAuraId = 100205,
 		dbColumn = "pstamina",
 		maxPoints = Paragon.MAX_POINTS.Stamina,
 		categoryId = 1,
@@ -124,8 +119,6 @@ Paragon.STATS = {
 		name = "Haste",
 		tooltip = "Increases attack and casting speed.",
 		icon = "Interface/Icons/Spell_Nature_Bloodlust",
-		auraId = 100016,
-		bigAuraId = 100216,
 		dbColumn = "phaste",
 		maxPoints = Paragon.MAX_POINTS.Haste,
 		categoryId = 2,
@@ -135,8 +128,6 @@ Paragon.STATS = {
 		name = "Armor Penetration",
 		tooltip = "Increases armor penetration rating.",
 		icon = "Interface/Icons/Ability_Warrior_Sunder",
-		auraId = 100017,
-		bigAuraId = 100217,
 		dbColumn = "parmpen",
 		maxPoints = Paragon.MAX_POINTS.ArmorPen,
 		categoryId = 2,
@@ -146,8 +137,6 @@ Paragon.STATS = {
 		name = "Spell Power",
 		tooltip = "Increases damage and healing done by spells.",
 		icon = "Interface/Icons/Spell_Holy_MindSooth",
-		auraId = 100018,
-		bigAuraId = 100218,
 		dbColumn = "pspellpower",
 		maxPoints = Paragon.MAX_POINTS.SpellPower,
 		categoryId = 2,
@@ -157,8 +146,6 @@ Paragon.STATS = {
 		name = "Critical Strike",
 		tooltip = "Increases critical strike rating.",
 		icon = "Interface/Icons/Spell_Shadow_ShadowPact",
-		auraId = 100019,
-		bigAuraId = 100219,
 		dbColumn = "pcrit",
 		maxPoints = Paragon.MAX_POINTS.Crit,
 		categoryId = 2,
@@ -168,8 +155,6 @@ Paragon.STATS = {
 		name = "Hit Rating",
 		tooltip = "Increases hit rating, reducing chance to miss.",
 		icon = "Interface/Icons/Spell_Shadow_FingerOfDeath",
-		auraId = 100022,
-		bigAuraId = 100222,
 		dbColumn = "phit",
 		maxPoints = Paragon.MAX_POINTS.Hit,
 		categoryId = 2,
@@ -181,8 +166,6 @@ Paragon.STATS = {
 		name = "Block",
 		tooltip = "Increases block rating.",
 		icon = "Interface/Icons/Ability_Defend",
-		auraId = 100023,
-		bigAuraId = 100223,
 		dbColumn = "pblock",
 		maxPoints = Paragon.MAX_POINTS.Block,
 		categoryId = 3,
@@ -192,8 +175,6 @@ Paragon.STATS = {
 		name = "Expertise",
 		tooltip = "Increases expertise, reducing chance to be dodged or parried.",
 		icon = "Interface/Icons/Spell_Holy_SealOfMight",
-		auraId = 100024,
-		bigAuraId = 100224,
 		dbColumn = "pexpertise",
 		maxPoints = Paragon.MAX_POINTS.Expertise,
 		categoryId = 3,
@@ -203,8 +184,6 @@ Paragon.STATS = {
 		name = "Parry",
 		tooltip = "Increases parry rating.",
 		icon = "Interface/Icons/Ability_Parry",
-		auraId = 100025,
-		bigAuraId = 100225,
 		dbColumn = "pparry",
 		maxPoints = Paragon.MAX_POINTS.Parry,
 		categoryId = 3,
@@ -214,8 +193,6 @@ Paragon.STATS = {
 		name = "Dodge",
 		tooltip = "Increases dodge rating.",
 		icon = "Interface/Icons/Ability_Rogue_Feint",
-		auraId = 100026,
-		bigAuraId = 100226,
 		dbColumn = "pdodge",
 		maxPoints = Paragon.MAX_POINTS.Dodge,
 		categoryId = 3,
@@ -227,8 +204,6 @@ Paragon.STATS = {
 		name = "Mount Speed",
 		tooltip = "Increases mounted movement speed.",
 		icon = "Interface/Icons/Ability_Mount_RidingHorse",
-		auraId = 100020,
-		bigAuraId = 100220,
 		dbColumn = "pmspeed",
 		maxPoints = Paragon.MAX_POINTS.MountSpeed,
 		categoryId = 4,
@@ -238,8 +213,6 @@ Paragon.STATS = {
 		name = "Mana Regeneration",
 		tooltip = "Increases mana regeneration.",
 		icon = "Interface/Icons/Spell_Nature_ManaRegenTotem",
-		auraId = 100021,
-		bigAuraId = 100221,
 		dbColumn = "pmreg",
 		maxPoints = Paragon.MAX_POINTS.ManaRegen,
 		categoryId = 4,
@@ -251,8 +224,6 @@ Paragon.STATS = {
 		name = "Life Leech",
 		tooltip = "Heals you for 0.1% of damage dealt per point.",
 		icon = "Interface/Icons/Spell_Shadow_LifeDrain02",
-		auraId = 100027,
-		bigAuraId = 100227,
 		dbColumn = "plifeleech",
 		maxPoints = Paragon.MAX_POINTS.LifeLeech,
 		categoryId = 2,
@@ -261,12 +232,10 @@ Paragon.STATS = {
 
 -- Build lookup tables
 Paragon.STAT_BY_ID = {}
-Paragon.STAT_BY_AURA = {}
 Paragon.STATS_BY_CATEGORY = {}
 
 for _, stat in ipairs(Paragon.STATS) do
 	Paragon.STAT_BY_ID[stat.id] = stat
-	Paragon.STAT_BY_AURA[stat.auraId] = stat
 
 	if not Paragon.STATS_BY_CATEGORY[stat.categoryId] then
 		Paragon.STATS_BY_CATEGORY[stat.categoryId] = {}
@@ -299,7 +268,7 @@ function Paragon.GetAllocations(characterID)
 	end
 
 	local columns = table.concat(Paragon.DB_COLUMN_ORDER, ", ")
-	local query = CharDBQuery("SELECT " .. columns .. ", unspent_points FROM character_paragon_points WHERE characterID = " .. characterID)
+	local query = CharDBQuery("SELECT " .. columns .. ", unspent_points FROM character_paragon_points WHERE characterID = " .. tonumber(characterID))
 	if query then
 		for i, colName in ipairs(Paragon.DB_COLUMN_ORDER) do
 			local statId = Paragon.COLUMN_TO_STAT_ID[colName]
@@ -317,7 +286,7 @@ end
 -- @param characterID number
 -- @return number
 function Paragon.GetAvailablePoints(characterID)
-	local query = CharDBQuery("SELECT unspent_points FROM character_paragon_points WHERE characterID = " .. characterID)
+	local query = CharDBQuery("SELECT unspent_points FROM character_paragon_points WHERE characterID = " .. tonumber(characterID))
 	if query then
 		return query:GetInt32(0)
 	end
@@ -328,31 +297,31 @@ end
 -- @param characterID number
 -- @param newValue number
 function Paragon.UpdateUnspentPoints(characterID, newValue)
-	CharDBExecute("UPDATE character_paragon_points SET unspent_points = " .. newValue .. " WHERE characterID = " .. characterID)
+	CharDBExecute("UPDATE character_paragon_points SET unspent_points = " .. tonumber(newValue) .. " WHERE characterID = " .. tonumber(characterID))
 end
 
 --- Update a single stat allocation in the DB.
 -- @param characterID number
--- @param dbColumn string
+-- @param dbColumn string  (whitelisted column name from Paragon.STATS)
 -- @param newValue number
 function Paragon.UpdateAllocation(characterID, dbColumn, newValue)
-	CharDBExecute("UPDATE character_paragon_points SET " .. dbColumn .. " = " .. newValue .. " WHERE characterID = " .. characterID)
+	CharDBExecute("UPDATE character_paragon_points SET " .. dbColumn .. " = " .. tonumber(newValue) .. " WHERE characterID = " .. tonumber(characterID))
 end
 
 --- Atomic update: stat allocation + unspent_points in a single UPDATE.
--- Uses synchronous CharDBQuery so the C++ side (ApplyParagonStatEffects on
--- map change) sees a consistent (totalAllocated + unspent) immediately,
--- avoiding the integrity-mismatch reset path. Prefer this over the
--- two-step UpdateAllocation + UpdateUnspentPoints pair.
+-- Uses synchronous CharDBQuery so the C++ side sees a consistent
+-- (totalAllocated + unspent) immediately, avoiding the integrity-mismatch
+-- path. dbColumn is always a whitelisted name from Paragon.STATS; all numeric
+-- arguments are coerced via tonumber (Eluna has no bind parameters).
 -- @param characterID number
 -- @param dbColumn    string
 -- @param newValue    number  new value of the stat column
 -- @param newUnspent  number  new unspent_points value
 function Paragon.UpdateAllocationAndUnspent(characterID, dbColumn, newValue, newUnspent)
 	CharDBQuery("UPDATE character_paragon_points SET "
-		.. dbColumn .. " = " .. newValue
-		.. ", unspent_points = " .. newUnspent
-		.. " WHERE characterID = " .. characterID)
+		.. dbColumn .. " = " .. tonumber(newValue)
+		.. ", unspent_points = " .. tonumber(newUnspent)
+		.. " WHERE characterID = " .. tonumber(characterID))
 end
 
 --- Race/gender-specific "not enough money" sound effects.

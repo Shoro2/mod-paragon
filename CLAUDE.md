@@ -18,7 +18,7 @@ Player Kill / Quest Complete
        │
        ▼ Level-up → 5 unspent_points → Player allocates via UI
        │
-       ▼ character_paragon_points → invisible stack auras (100xxx) on player
+       ▼ character_paragon_points → direct core stat modifiers (C++) on player
        │
        ▼ value is read by mod-paragon-itemgen
                  (scales item bonus stats: amount = ceil(level × scaling × quality))
@@ -32,8 +32,9 @@ mod-paragon is the **foundation** for mod-paragon-itemgen. Without mod-paragon a
 |-----|--------|-----------|
 | **DB table (acore_characters)** | `character_paragon` | Account level/XP (PK `accountID`, `level`, `xp` counts **down** to 0) |
 | | `character_paragon_points` | Per-character stat allocation (`unspent_points` + 17 stat columns) |
-| **Custom spells** | 100000 (level counter), 100001-100005 (Str/Int/Agi/Spi/Sta), 100016-100027 (all combat ratings + LifeLeech) | see [`share-public/docs/06-custom-ids.md`](https://github.com/Shoro2/share-public/blob/main/docs/06-custom-ids.md) |
-| | 100201-100227 | "Big" counterparts for stats > 255 (stack ×100) |
+| **Custom spells** | 100000 (level marker / "has paragon" flag) | see [`share-public/docs/06-custom-ids.md`](https://github.com/Shoro2/share-public/blob/main/docs/06-custom-ids.md) |
+| | 100028 (reapply trigger), 100029 (mount-speed aura) | server-side; stats are applied via direct core APIs, not auras |
+| | 100001-100027 (legacy) | no longer applied; small spells live in binary `Spell.dbc`, kept reserved |
 | **Custom NPC** | `npc_paragon` (entry **900100**) | Gossip menu for info / reset |
 | **AIO handler names** | `Paragon` (server) / `Paragon_Client` (client) | Details: [`functions.md`](./functions.md#aio-handler) |
 | **Slash commands** | (none) | UI opens via NPC or ESC menu button |
@@ -58,12 +59,11 @@ Group kills give XP to all group members on the same map. Level formula: `100 ×
 `conf/mod_paragon.conf.dist` — ~30 options:
 
 - Master toggle: `Paragon.Enable`
-- Level cap: `Paragon.MaxLevel` (0 = unlimited)
-- Aura IDs: `Paragon.IdStr`, `Paragon.IdInt`, …, `Paragon.IdLifeLeech` (each individually overridable)
-- Max points per stat: `Paragon.MaxStr`, `Paragon.MaxInt`, … (default 255 each, 0 = unlimited)
-- XP rewards: `Paragon.XpEliteDungeon`, `Paragon.XpRaidBoss`, …
-- Party XP reduce: `Paragon.PartyReducePct`
-- LifeLeech %: `Paragon.LifeLeechPct = 0.5` (default)
+- Level cap: `Paragon.MaxLevel` (default **666**, 0 = unlimited)
+- Spell IDs: `Paragon.IdLevel` (level marker), `Paragon.MountSpeedSpellId`
+- Max points per stat: `Paragon.MaxStr`, `Paragon.MaxInt`, … (default **666** each, 0 = unlimited)
+- XP rewards: `Paragon.XPElite`, `Paragon.XPRaidBoss`, …
+- LifeLeech %: `Paragon.LifeLeechPct = 0.1` (% healed per point)
 
 Full list with defaults: [`functions.md`](./functions.md#configuration).
 
@@ -76,9 +76,11 @@ Full list with defaults: [`functions.md`](./functions.md#configuration).
 
 ## Architecture notes
 
-- **Hybrid C++/Lua**: both layers write to `character_paragon_points`. C++ is the single source of truth for aura application; Lua/AIO is the UI for allocation. Race conditions are theoretically possible but rare in practice due to UI latency — see [`todo.md`](./todo.md).
-- **Stack limit workaround**: WoW auras stack up to 255. For stats > 255 there are paired "big" auras (stack × 100) and "small" auras (stack × 1). Allocation `N`: `big = N/100`, `small = N%100`.
-- **LifeLeech (100027)**: heals a configurable percentage of damage dealt. Also works through pets/totems via `Unit::GetCharmerOrOwnerPlayerOrPlayerItself()`.
+- **C++ is the single source of truth for stat application.** Each stat is applied **once with its full value** via the core stat APIs — `HandleStatFlatModifier` (primary stats), `ApplyRatingMod` (combat ratings), `ApplySpellPowerBonus`, `ApplyManaRegenBonus`, and a single non-stacking aura for Mount Speed (spell 100029). No stacking auras → the uint8 255 stack ceiling never applies. Effect amounts are `int32`, so 666 × per-point fits trivially.
+- **Deterministic reapply.** On login, stats are re-derived from `character_paragon_points` and diffed against a per-player applied snapshot (idempotent). Direct modifiers persist for the whole session (they survive map change, death, item equip, and `.reset stats`), so nothing decays. Lua/AIO only validates input + writes the DB, then casts the hidden reapply-trigger spell (100028) whose C++ SpellScript re-applies the stats.
+- **Relog fix**: the old design used non-passive auras, which the core saved to `character_aura` and reloaded with stale/255-capped stacks — that was the root of the relog/decay bug. The new design stores nothing aura-side for stats, so there is nothing to lose.
+- **LifeLeech**: heals `Paragon.LifeLeechPct`% of damage dealt per point. The value is read from the in-memory snapshot in `ParagonLifeLeech::OnDamage` (no aura). Works through pets/totems via `Unit::GetCharmerOrOwnerPlayerOrPlayerItself()`.
+- **Level > 255**: the marker aura 100000 caps at 255 (uint8). Use `GetParagonLevel(Player*)` for the true level (up to `MaxLevel`); other modules must not read the level via `GetAuraCount(100000)`.
 
 ## License
 
