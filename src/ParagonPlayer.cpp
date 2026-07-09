@@ -441,7 +441,7 @@ public:
     }
 
     void OnPlayerResurrect(Player* player, float /*restorePercent*/,
-                           bool /*applySickness*/) override
+                           bool& /*applySickness*/) override
     {
         if (!conf_Enable)
             return;
