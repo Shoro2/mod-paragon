@@ -63,7 +63,7 @@ public:
 };
 
 // Add all scripts in one
-void AddMyNPCScripts()
+void AddParagonNPCScripts()
 {
     new ParagonNPC();
 }

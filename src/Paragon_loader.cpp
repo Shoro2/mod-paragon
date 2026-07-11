@@ -4,7 +4,7 @@
 
 // From SC
 void AddParagonPlayerScripts();
-void AddMyNPCScripts();
+void AddParagonNPCScripts();
 void AddParagonReapplyScripts();
 
 // Add all
@@ -13,6 +13,6 @@ void AddParagonReapplyScripts();
 void Addmod_paragonScripts()
 {
     AddParagonPlayerScripts();
-    AddMyNPCScripts();
+    AddParagonNPCScripts();
     AddParagonReapplyScripts();
 }
