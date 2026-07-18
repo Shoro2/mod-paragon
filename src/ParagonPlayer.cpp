@@ -239,9 +239,27 @@ void ReapplyParagonStats(Player* player, uint32 const desired[STAT_COUNT])
     sParagonApplied[guid] = clamped;
 }
 
+// Remove any legacy stacking auras from the previous design (saved rows in
+// character_aura, or auras re-added by a stale pre-redesign Lua deployment).
+// The gap 100006-100015 is load-bearing: those IDs are unrelated FL spells
+// (Bestial speed, Lunar Blessing, tablet purifications) and must survive.
+static void RemoveLegacyParagonAuras(Player* player)
+{
+    for (uint32 id = 100001; id <= 100005; ++id)
+        player->RemoveAura(id);
+    for (uint32 id = 100016; id <= 100027; ++id)
+        player->RemoveAura(id);
+    for (uint32 id = 100201; id <= 100227; ++id)
+        player->RemoveAura(id);
+}
+
 // Read the per-character allocation from the DB and reapply it.
 void ApplyParagonStatEffects(Player* player)
 {
+    // Purge legacy auras on every reconcile so a stale aura-stacking Lua (or
+    // an old character_aura row) can never double-count a stat mid-session.
+    RemoveLegacyParagonAuras(player);
+
     CharacterDatabasePreparedStatement* stmt =
         CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_POINTS);
     stmt->SetData(0, player->GetGUID().GetCounter());
@@ -322,18 +340,6 @@ void ClearParagonStats(Player* player)
     ReapplyParagonStats(player, zeros);
 }
 
-// Remove any legacy stacking auras left over from the previous design (and
-// from character_aura on first login after the upgrade).
-static void RemoveLegacyParagonAuras(Player* player)
-{
-    for (uint32 id = 100001; id <= 100005; ++id)
-        player->RemoveAura(id);
-    for (uint32 id = 100016; id <= 100027; ++id)
-        player->RemoveAura(id);
-    for (uint32 id = 100201; id <= 100227; ++id)
-        player->RemoveAura(id);
-}
-
 // The mount-speed bonus is the only stat backed by an aura. Re-assert it if a
 // game event stripped it; uses the snapshot, so no DB query is needed.
 static void EnsureParagonAuras(Player* player)
@@ -383,10 +389,6 @@ public:
         uint32 accountID = player->GetSession()->GetAccountId();
         uint32 characterID = player->GetGUID().GetCounter();
 
-        // Purge any saved stacking auras from the old design before applying
-        // the new modifiers, so nothing double-counts.
-        RemoveLegacyParagonAuras(player);
-
         CharacterDatabasePreparedStatement* stmt =
             CharacterDatabase.GetPreparedStatement(CHAR_SEL_PARAGON_LEVEL_XP);
         stmt->SetData(0, accountID);
@@ -426,7 +428,15 @@ public:
                 CharacterDatabase.GetPreparedStatement(CHAR_INS_PARAGON_POINTS);
             insPoints->SetData(0, characterID);
             CharacterDatabase.Execute(insPoints);
-            CacheSet(accountID, 0, 0);
+            // Cache must mirror the INSERT above (level 1, xp 100); caching
+            // 0/0 made the first level-up write DB level 2 while the cache
+            // said 1 until the next relog.
+            CacheSet(accountID, 1, 100);
+            player->AddAura(conf_AuraLevel, player);
+            player->SetAuraStack(conf_AuraLevel, player, 1);
+            // If a points row already exists (account row lost/mismatched),
+            // still apply its stats; on a truly fresh row this is a no-op.
+            ApplyParagonStatEffects(player);
         }
     }
 
@@ -436,7 +446,12 @@ public:
             return;
 
         // Direct stat modifiers persist across map changes (the Player object
-        // is not recreated); only the mount-speed aura may need re-asserting.
+        // is not recreated), but reconcile against the DB anyway: it is a
+        // cheap PK lookup, the diff-based reapply makes it a no-op when
+        // nothing drifted, and it self-heals any snapshot-vs-DB divergence
+        // (e.g. an allocation that never reached C++). The mount-speed aura
+        // may additionally need re-asserting when points did not change.
+        ApplyParagonStatEffects(player);
         EnsureParagonAuras(player);
     }
 
@@ -446,6 +461,7 @@ public:
         if (!conf_Enable)
             return;
 
+        ApplyParagonStatEffects(player);
         EnsureParagonAuras(player);
     }
 
@@ -476,7 +492,11 @@ public:
                         CHAR_INS_PARAGON_POINTS);
                 insPoints->SetData(0, characterID);
                 CharacterDatabase.Execute(insPoints);
-                CacheSet(accountID, 0, 0);
+                // Mirror the INSERT (level 1, xp 100) and grant the marker
+                // right away so XP gain works without a relog.
+                CacheSet(accountID, 1, 100);
+                player->AddAura(conf_AuraLevel, player);
+                player->SetAuraStack(conf_AuraLevel, player, 1);
             }
         }
     }

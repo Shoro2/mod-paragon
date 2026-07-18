@@ -57,8 +57,8 @@ std::unordered_map<ObjectGuid, std::array<uint32, 17>> sParagonApplied;
 std::mutex sParagonMutex;  // guards both maps
 ```
 
-- **Login** → SELECT level/XP into `sParagonAcct`; purge legacy auras; `ApplyParagonStatEffects` (full apply, snapshot starts empty).
-- **MapChange / Resurrect** → `EnsureParagonAuras` (re-assert the Mount Speed aura only; direct modifiers persist with the `Player` object).
+- **Login** → SELECT level/XP into `sParagonAcct`; `ApplyParagonStatEffects` (purges legacy auras, full apply, snapshot starts empty). A fresh/missing account row also applies stats (covers a points row surviving an account-row loss) and caches `level=1, xp=100` to mirror `CHAR_INS_PARAGON`.
+- **MapChange / Resurrect** → `ApplyParagonStatEffects` (cheap PK reconcile against the DB; diff-based → no-op when nothing drifted; self-heals snapshot-vs-DB divergence) + `EnsureParagonAuras` (re-assert the Mount Speed aura when points did not change).
 - **XP gain / level-up** → update `sParagonAcct`, async DB UPDATE.
 - **Logout** → erase both cache entries (nothing is persisted aura-side).
 
@@ -100,6 +100,15 @@ Direct modifiers survive map change, death, item equip and `.reset stats` (the
 core re-applies item/aura mods symmetrically and never zeroes our additions), so
 no decay. Only the Mount Speed aura may be stripped by a game event; `EnsureParagonAuras`
 re-asserts it from the snapshot on map change / resurrect.
+
+`ApplyParagonStatEffects` additionally begins with `RemoveLegacyParagonAuras`
+(100001-100005, 100016-100027, 100201-100227 — the 100006-100015 gap holds
+unrelated FL spells and must survive), so a stale pre-redesign Lua deployment
+or an old `character_aura` row can never double-count a stat mid-session.
+**Deploy contract:** `lua_scripts/Paragon_System/` on the server MUST match
+`Paragon_System_LUA/` in this repo — the pre-redesign Lua stacks visible
+legacy auras and never casts trigger 100028, silently desyncing the snapshot
+(that drift caused the 2026-07 "stats vanish after wipes/teleports" report).
 
 ## NPC `npc_paragon` (CreatureScript, entry 900100)
 
