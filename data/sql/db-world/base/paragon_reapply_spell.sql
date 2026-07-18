@@ -6,6 +6,7 @@
 -- keeping C++ the single source of truth for stat application.
 --
 -- Effect 1 = SPELL_EFFECT_DUMMY (3), self target. No aura is created.
+-- Attributes 0x180 = DO_NOT_DISPLAY (0x80) + DO_NOT_LOG (0x100).
 
 DELETE FROM `spell_dbc` WHERE `ID` = 100028;
 INSERT INTO `spell_dbc` (`ID`, `Attributes`,
@@ -13,7 +14,7 @@ INSERT INTO `spell_dbc` (`ID`, `Attributes`,
     `Effect_1`, `ImplicitTargetA_1`,
     `SchoolMask`, `Name_Lang_enUS`)
 VALUES (100028,
-    256,
+    384,
     1, 1, 1,
     3, 1,
     1, 'Paragon Reapply Trigger');

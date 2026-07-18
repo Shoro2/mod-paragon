@@ -45,6 +45,7 @@ mod-paragon/
 | `data/sql/db-world/base/paragon_mountspeed_spell.sql` | spell_dbc 100029 (Mount Speed aura: run + swim) |
 | `data/sql/db-world/base/paragon_reapply_spell.sql` | spell_dbc 100028 + `spell_script_names` (reapply trigger) |
 | `data/sql/db-world/updates/remove_legacy_stat_spells.sql` | Drops obsolete `spell_dbc` rows (100201-100227, 100027) |
+| `data/sql/db-world/updates/fix_paragon_spell_attributes.sql` | Bitwise-fixes 100028/100029 attributes (DO_NOT_DISPLAY 0x80, death-persist Ex3 0x130000, Ex5 0x60000) |
 | `Paragon_System_LUA/Paragon_Data.lua` | Data model: 17 stat definitions (`dbColumn`, `maxPoints`, …), `REAPPLY_SPELL`, `MAX_POINTS`, DB helpers |
 | `Paragon_System_LUA/Paragon_Server.lua` | AIO handlers: `RequestData`, `AllocatePoint`, `DeallocatePoint` (cast reapply trigger after DB write) |
 | `Paragon_System_LUA/Paragon_Client.lua` | UI: `ParagonFrame`, category tabs, stat rows, +/- buttons (Shift = ×10), ESC menu button |
