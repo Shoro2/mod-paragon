@@ -83,7 +83,7 @@ MountSpeed = 1, LifeLeech = 0.1%/pt.
 | 10 | ManaRegen | `ApplyManaRegenBonus(n*5)` |
 | 11 | Hit | `ApplyRatingMod(CR_HIT_MELEE/RANGED/SPELL, n*10)` |
 | 12-15 | Block/Expertise/Parry/Dodge | `ApplyRatingMod(CR_BLOCK/EXPERTISE/PARRY/DODGE, n*{4,3,10,10})` |
-| 16 | Life Leech | no stat applied; value read from `sParagonApplied` in `OnDamage` |
+| 16 | Life Leech | no stat applied; value read from `sParagonApplied` in `OnDamage`; heals via `HealBySpell` with spell 100027 so the client shows green numbers + combat log (a bare `DealHeal` fills the bar silently) |
 
 Note: the module's primary-stat index order (Str, **Int, Agi, Spi, Sta**) differs
 from the core `Stats` enum, so `ApplyStat` maps via `kPrimaryStat[]`.
@@ -100,6 +100,12 @@ Direct modifiers survive map change, death, item equip and `.reset stats` (the
 core re-applies item/aura mods symmetrically and never zeroes our additions), so
 no decay. Only the Mount Speed aura may be stripped by a game event; `EnsureParagonAuras`
 re-asserts it from the snapshot on map change / resurrect.
+
+**Config contract:** the deployed `mod_paragon.conf` must keep `Paragon.Max*`
+in sync with `Paragon.MAX_POINTS` in `Paragon_Data.lua` (both 666). If the
+conf is lower (the pre-2026-07 live conf still had the legacy 255), the Lua
+UI happily sells points past the cap while C++ clamps the applied value —
+every click beyond the cap then visibly does nothing.
 
 `ApplyParagonStatEffects` additionally begins with `RemoveLegacyParagonAuras`
 (100001-100005, 100016-100027, 100201-100227 — the 100006-100015 gap holds

@@ -10,11 +10,17 @@
 #include "CharacterDatabase.h"
 #include "Log.h"
 #include "SpellDefines.h"
+#include "SpellMgr.h"
+#include "SpellInfo.h"
 #include <array>
 #include <mutex>
 #include <unordered_map>
 
 constexpr uint32 STAT_COUNT = 17;
+
+// Legacy Life Leech spell entry (binary DBC) — no longer applied as an aura,
+// but kept as the spell identity for the visible leech heal log (name/icon).
+constexpr uint32 SPELL_PARAGON_LIFELEECH = 100027;
 
 // Paragon stat indices. This order matches both the DB column order in
 // CHAR_SEL_PARAGON_POINTS and the Lua STATS table.
@@ -804,7 +810,18 @@ public:
         if (healAmount == 0)
             return;
 
-        Unit::DealHeal(player, player, healAmount);
+        // Heal through the spell path so the client shows green heal
+        // numbers and a combat-log line — a bare DealHeal fills the bar
+        // silently, which made Life Leech look broken at full health.
+        if (SpellInfo const* leechInfo =
+            sSpellMgr->GetSpellInfo(SPELL_PARAGON_LIFELEECH))
+        {
+            HealInfo healInfo(player, player, healAmount, leechInfo,
+                leechInfo->GetSchoolMask());
+            player->HealBySpell(healInfo);
+        }
+        else
+            Unit::DealHeal(player, player, healAmount);
     }
 };
 
