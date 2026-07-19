@@ -17,3 +17,10 @@ UPDATE `spell_dbc`
         `AttributesEx3` = (`AttributesEx3` & ~0x18000080) | 0x130000,
         `AttributesEx5` = (`AttributesEx5` & ~0x84000) | 0x60000
     WHERE `ID` = 100029;
+
+-- The table default for EquippedItemClass is 0 (= ITEM_CLASS_CONSUMABLE
+-- required to cast) — the convention for "no item requirement" is -1. With 0
+-- the reapply trigger fails CheckItems and allocations never reach C++.
+UPDATE `spell_dbc`
+    SET `EquippedItemClass` = -1
+    WHERE `ID` IN (100028, 100029) AND `EquippedItemClass` = 0;

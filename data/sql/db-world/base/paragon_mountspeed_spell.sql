@@ -18,9 +18,14 @@
 --   AttributesEx4: 0x400    NOT_STEALABLE
 --   AttributesEx5: 0x60000  ALLOW_WHILE_FLEEING + ALLOW_WHILE_CONFUSED
 
+-- EquippedItemClass MUST be -1 (no item requirement): the table default is 0
+-- = ITEM_CLASS_CONSUMABLE, which disables the aura/cast via CheckItems (this
+-- exact default-0 trap silently broke the reapply cast on 2026-07-19).
+
 DELETE FROM `spell_dbc` WHERE `ID` = 100029;
 INSERT INTO `spell_dbc` (`ID`, `Attributes`, `AttributesEx`, `AttributesEx2`,
     `AttributesEx3`, `AttributesEx4`, `AttributesEx5`,
+    `EquippedItemClass`, `EquippedItemSubclass`, `EquippedItemInvTypes`,
     `DurationIndex`, `RangeIndex`, `CumulativeAura`, `CastingTimeIndex`,
     `Effect_1`, `EffectDieSides_1`, `EffectBasePoints_1`, `EffectAura_1`,
     `ImplicitTargetA_1`,
@@ -29,6 +34,7 @@ INSERT INTO `spell_dbc` (`ID`, `Attributes`, `AttributesEx`, `AttributesEx2`,
     `SchoolMask`, `Name_Lang_enUS`)
 VALUES (100029,
     384, 1056, 0, 1245184, 1024, 393216,
+    -1, 0, 0,
     21, 1, 0, 1,
     6, 0, 0, 31, 1,
     6, 0, 0, 58, 1,
