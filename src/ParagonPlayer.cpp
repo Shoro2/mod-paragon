@@ -382,6 +382,49 @@ uint32 GetParagonLevel(Player* player)
     return 0;
 }
 
+bool SetParagonLevelAtLeast(Player* player, uint32 level)
+{
+    if (!conf_Enable || !player)
+        return false;
+    if (conf_MaxLevel > 0)
+        level = std::min(level, conf_MaxLevel);
+
+    uint32 const current = GetParagonLevel(player);
+    if (!current || current >= level)
+        return false;
+
+    // The XP a level-up leaves for the next level (IncreaseParagonXP).
+    double const xpRequired = std::min(100.0 * pow(1.1, level - 1),
+        2000000000.0);
+    uint32 const xp = static_cast<uint32>(xpRequired);
+    uint32 const accountID = player->GetSession()->GetAccountId();
+    uint32 const characterID = player->GetGUID().GetCounter();
+
+    // The fork's statements only step the level up by one, and the reconcile
+    // below reads the points on the synchronous connection - so both rows are
+    // written there, directly (numbers only). Upserts: a character that just
+    // reached 80 may still have its rows on the async queue (OnPlayerLevelChanged
+    // caches level 1 at once); that later INSERT then fails on the key instead
+    // of the floor being lost.
+    CharacterDatabase.DirectExecute("INSERT INTO `character_paragon` (`accountID`, "
+        "`level`, `xp`) VALUES ({}, {}, {}) ON DUPLICATE KEY UPDATE `level` = "
+        "VALUES(`level`), `xp` = VALUES(`xp`)", accountID, level, xp);
+    CharacterDatabase.DirectExecute("INSERT INTO `character_paragon_points` "
+        "(`characterID`, `unspent_points`) VALUES ({}, {}) ON DUPLICATE KEY UPDATE "
+        "`unspent_points` = `unspent_points` + VALUES(`unspent_points`)",
+        characterID, (level - current) * conf_PPL);
+    CacheSet(accountID, level, xp);
+
+    player->SetAuraStack(conf_AuraLevel, player,
+        std::min(level, static_cast<uint32>(255)));
+    ApplyParagonStatEffects(player);
+
+    LOG_INFO("module.paragon", "SetParagonLevelAtLeast: account {} ({}) "
+        "raised from Paragon {} to {}", accountID, player->GetName(), current,
+        level);
+    return true;
+}
+
 class ParagonPlayer : public PlayerScript
 {
 public:

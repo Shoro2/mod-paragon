@@ -64,6 +64,8 @@ std::mutex sParagonMutex;  // guards both maps
 
 `GetParagonLevel(Player*)` returns the true level (cache→DB) for cross-module reads above 255.
 
+`SetParagonLevelAtLeast(Player*, level)` raises the account to at least `level` (capped at `Paragon.MaxLevel`) for another module (mod-ptr-template's Paragon floor): `character_paragon.level` and the XP a level-up would leave (`100 × 1.1^(level−1)`, capped at 2·10⁹), this character's `unspent_points` + (new − old) × `Paragon.PPL`, the cache, the level marker's stack and `ApplyParagonStatEffects`. Both rows are written with `DirectExecute` as upserts (numbers only): the fork's statements only step the level by one, the reconcile reads the points on the synchronous connection, and a character that just reached 80 may still have its rows on the async queue (`OnPlayerLevelChanged` caches level 1 at once) - that later INSERT then fails on the key instead of the floor being lost. Never lowers; returns false when nothing changed or the account has no Paragon row yet (below 80). Other characters of the account get their points from the level on their next reconcile, as after any level-up.
+
 ## Stat application system
 
 Each stat is applied **once with its full value** via the cleanest core API — no

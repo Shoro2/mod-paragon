@@ -53,7 +53,7 @@ mod-paragon/
 | `src/ParagonPlayer.cpp` | `ParagonPlayer` (PlayerScript), `ParagonLifeLeech` (UnitScript), `ParagonConfig` (WorldScript); direct stat APIs + caches |
 | `src/ParagonReapply.cpp` | `spell_paragon_reapply` SpellScript: re-applies stats on cast of 100028 |
 | `src/ParagonNPC.cpp` | CreatureScript `npc_paragon`: gossip "Info / Reset" |
-| `src/ParagonUtils.h` | Forward declarations (`ApplyParagonStatEffects`, `ReapplyParagonStats`, `ClearParagonStats`, `GetParagonLevel`, `IncreaseParagonXP`) |
+| `src/ParagonUtils.h` | Forward declarations (`ApplyParagonStatEffects`, `ReapplyParagonStats`, `ClearParagonStats`, `GetParagonLevel`, `SetParagonLevelAtLeast`, `IncreaseParagonXP`) |
 | `apps/ci/ci-codestyle.sh` | Codestyle CI check (4-space, LF, type position, etc.) |
 
 ## Size notes (as of 2026-05-01)
