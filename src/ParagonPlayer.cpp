@@ -430,6 +430,17 @@ class ParagonPlayer : public PlayerScript
 public:
     ParagonPlayer() : PlayerScript("ParagonPlayer") { }
 
+    void OnPlayerDeleteFromDB(
+        CharacterDatabaseTransaction transaction, uint32 guid) override
+    {
+        // Only permanent deletion reaches this hook. Keep account progress and
+        // soft-deleted characters' allocations, even when Paragon is disabled.
+        CharacterDatabasePreparedStatement* stmt =
+            CharacterDatabase.GetPreparedStatement(CHAR_DEL_PARAGON_POINTS);
+        stmt->SetData(0, guid);
+        transaction->Append(stmt);
+    }
+
     void OnPlayerLogin(Player* player) override
     {
         if (!conf_Enable)

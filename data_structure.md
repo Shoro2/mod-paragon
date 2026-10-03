@@ -23,6 +23,7 @@ mod-paragon/
 │   ├── ParagonNPC.cpp                                 # CreatureScript for npc_paragon
 │   └── ParagonUtils.h                                 # Header (function declarations)
 ├── apps/ci/ci-codestyle.sh                            # CI codestyle validation
+├── tests/                                             # Private MySQL + native core deletion fixtures
 ├── include.sh                                          # Build integration
 ├── pull_request_template.md                            # GitHub PR template
 ├── CLAUDE.md                                           # Detailed content doc
@@ -40,6 +41,8 @@ mod-paragon/
 | `data/sql/db-characters/base/character_paragon_points_create.sql` | Per-character stat allocation (17 columns) |
 | `data/sql/db-characters/updates/add_plifeleech_column.sql` | Migration for the Life Leech column |
 | `data/sql/db-characters/updates/remove_legacy_stat_auras.sql` | Purge saved legacy stat auras from `character_aura` |
+| `data/sql/db-characters/updates/cleanup_orphan_paragon_points_2026_10_03.sql` | Idempotent missing-character allocation cleanup; preserves soft-deleted rows |
+| `tests/README.md` | Scratch-only fixtures, native test setup and evidence limits |
 | `data/sql/db-world/base/paragon_currency_item.sql` | Item template for Paragon points (item 920920) |
 | `data/sql/db-world/base/paragon_fix_strength_spell.sql` | Removes a bad `spell_dbc` override of 100001 |
 | `data/sql/db-world/base/paragon_mountspeed_spell.sql` | spell_dbc 100029 (Mount Speed aura: run + swim) |
@@ -91,4 +94,4 @@ mod-paragon/
 
 - **No custom DBC files in this repo** — DBC patches live in `azerothcore-wotlk/share/dbc/Spell.dbc`.
 - **No build slot** — included in `modules/` via AzerothCore auto-detection.
-- **No unit tests** — only CI codestyle.
+- **Offline regression tests** — private MySQL fixtures and a native core deletion harness; see `tests/README.md`.

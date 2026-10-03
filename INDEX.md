@@ -12,6 +12,7 @@ Entry point for AI tools.
 | `functions.md` | ~8 KB | **How**: stat application (direct core APIs), XP logic, AIO handlers, config |
 | `log.md` | ~2 KB | Commit log |
 | `todo.md` | ~1 KB | open tasks |
+| `tests/README.md` | <4 KB | Private MySQL fixtures + native core deletion test |
 
 ## Cross-Repo
 

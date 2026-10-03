@@ -20,6 +20,25 @@ Calls three sub-loaders:
 | `spell_paragon_reapply` | `SpellScript` | Spell 100028: re-derives + applies stats after a Lua DB write |
 | `npc_paragon` | `CreatureScript` | Gossip menu for NPC 900100 |
 
+## Character deletion
+
+`ParagonPlayer::OnPlayerDeleteFromDB(transaction, guid)` appends
+`CHAR_DEL_PARAGON_POINTS` to the core's character-deletion transaction.
+The hook runs only for permanent deletion (including expiry of a soft-deleted
+character). It runs even with `Paragon.Enable = 0`, leaves `character_paragon`
+account level/XP intact, and never commits independently. The fork must provide
+this async statement in `CharacterDatabase`; build core and module together.
+
+`cleanup_orphan_paragon_points_2026_10_03.sql` removes allocations only when no
+`characters.guid` exists. A soft-deleted row with `account = 0` still counts as
+an existing character. The filename sorts after both Paragon CREATE files for
+fresh installations. Back up affected rows with creation/deletion stopped before
+the updater first applies this file. It cannot identify inherited allocations
+on an already reused GUID; those still have a character row.
+
+Offline regression fixtures and the native core test:
+[`tests/README.md`](tests/README.md).
+
 ## XP system
 
 ### XP sources (each per player to all map group members)
