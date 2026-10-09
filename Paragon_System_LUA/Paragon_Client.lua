@@ -430,7 +430,9 @@ local function AddParagonToGameMenu()
 	end
 
 	local paragonButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-	paragonButton:SetPoint("CENTER", frame, 0, 95)
+	-- Anchored to the menu's TOP like the Options button: another addon that
+	-- grows the menu (the command hub) must not move it over Options.
+	paragonButton:SetPoint("CENTER", frame, "TOP", 0, -40)
 	paragonButton:SetSize(144, 21)
 
 	paragonButton.Text = paragonButton:CreateFontString()
