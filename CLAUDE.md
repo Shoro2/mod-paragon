@@ -37,7 +37,7 @@ mod-paragon is the **foundation** for mod-paragon-itemgen. Without mod-paragon a
 | | 100001-100027 (legacy) | no longer applied; small spells live in binary `Spell.dbc`, kept reserved |
 | **Custom NPC** | `npc_paragon` (entry **900100**) | Gossip menu for info / reset |
 | **AIO handler names** | `Paragon` (server) / `Paragon_Client` (client) | Details: [`functions.md`](./functions.md#aio-handler) |
-| **Slash commands** | (none) | UI opens via NPC or ESC menu button |
+| **Slash commands** | `/paragon` (client, AIO) | opens the window; so do NPC 900100, the ESC-menu button and the FL command hub (`/fl`) |
 | **Custom items** | none — Paragon points are a **DB value** (`unspent_points`), not an item |
 
 ## XP sources (top level)

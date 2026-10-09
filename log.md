@@ -4,6 +4,7 @@
 
 ## 2026
 
+- 2026-10-09 — fix(Lua): Anchor the ESC-menu button to the menu top (`55dce75`) — the FL command hub grows the ESC menu by one button; the centre-anchored Paragon button then slid over Options. Same line in fl-lua-scripts `Paragon_System/` (byte-identical copy); host: MIG-114
 - 2026-10-03 — fix(Core): Clean up deleted character allocations — T1 offline on the Windows operator box (private MySQL fixtures and native `Player::DeleteFromDB` harness); full-fleet/server integration and deployment still owed; companion core statement required; see `tests/README.md` and vault MIG-068
 - 2026-09-28 — feat(Core): `SetParagonLevelAtLeast(Player*, level)` for other modules - raises the account's level (never lowers; capped at `Paragon.MaxLevel`), the XP towards the next level, this character's unspent points for the new levels, the marker stack and the applied stats; the floor of mod-ptr-template's templates (the operator: Paragon 200)
 - 2026-07-19 — fix(DB): correct hide/death-persist attribute bits on 100028/100029 — Attributes 0x100→0x180 (the intended hide-icon bit is 0x80 DO_NOT_DISPLAY, not 0x100 DO_NOT_LOG), Ex1/Ex3/Ex5 of 100029 now match the hidden legacy stat auras (0x420/0x130000/0x60000) instead of the broken legacy Life-Leech bits (0x18000080 junk, no death persistence); base SQL corrected + bitwise update migration.
