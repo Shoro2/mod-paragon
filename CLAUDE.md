@@ -1,6 +1,12 @@
 # mod-paragon
 
-> Read [`INDEX.md`](./INDEX.md) first. Mechanics & hooks: [`functions.md`](./functions.md). Folder layout: [`data_structure.md`](./data_structure.md). Open items: [`todo.md`](./todo.md). Commit trail: [`log.md`](./log.md).
+> **Internal docs live in the vault, not here** (rule since 2026-10-18: this public repo keeps only
+> README.md with the general info and installation, this CLAUDE.md, the license and the code).
+> Index, data structure, functions, log and todo: share-public `docs/World of Warcraft/module-repos/mod-paragon/`
+> (local checkout `C:\Users\Anwender\Documents\GitHub\share-public`). Update them there,
+> in a vault worktree, in the same session as the code change.
+
+> Read [`INDEX.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/00-index.md) first. Mechanics & hooks: [`functions.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/functions.md). Folder layout: [`data_structure.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/data_structure.md). Open items: [`todo.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/todo.md). Commit trail: [`log.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/log.md).
 
 ## What is the module?
 
@@ -36,7 +42,7 @@ mod-paragon is the **foundation** for mod-paragon-itemgen. Without mod-paragon a
 | | 100028 (reapply trigger), 100029 (mount-speed aura) | server-side; stats are applied via direct core APIs, not auras |
 | | 100001-100027 (legacy) | no longer applied; small spells live in binary `Spell.dbc`, kept reserved |
 | **Custom NPC** | `npc_paragon` (entry **900100**) | Gossip menu for info / reset |
-| **AIO handler names** | `Paragon` (server) / `Paragon_Client` (client) | Details: [`functions.md`](./functions.md#aio-handler) |
+| **AIO handler names** | `Paragon` (server) / `Paragon_Client` (client) | Details: [`functions.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/functions.md#aio-handler) |
 | **Slash commands** | `/paragon` (client, AIO) | opens the window; so do NPC 900100, the ESC-menu button and the FL command hub (`/fl`) |
 | **Custom items** | none — Paragon points are a **DB value** (`unspent_points`), not an item |
 
@@ -65,14 +71,14 @@ Group kills give XP to all group members on the same map. Level formula: `100 ×
 - XP rewards: `Paragon.XPElite`, `Paragon.XPRaidBoss`, …
 - LifeLeech %: `Paragon.LifeLeechPct = 0.1` (% healed per point)
 
-Full list with defaults: [`functions.md`](./functions.md#configuration).
+Full list with defaults: [`functions.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/functions.md#configuration).
 
 ## What this module does **not** do
 
 - **no** item enchanting → that's the standalone `mod-paragon-itemgen`
 - **no** talents / specs → Paragon stats are pure numeric bonuses
 - **no** PvP toggle (stats apply in PvP just like in PvE)
-- **no** anti-farm protection (see [`todo.md`](./todo.md))
+- **no** anti-farm protection (see [`todo.md`](https://github.com/Shoro2/share-public/blob/main/docs/World%20of%20Warcraft/module-repos/mod-paragon/todo.md))
 
 ## Architecture notes
 
